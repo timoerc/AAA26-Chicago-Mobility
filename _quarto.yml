@@ -1,0 +1,39 @@
+project:
+  type: default
+  output-dir: docs
+
+execute:
+  daemon: 0
+
+format:
+  pdf:
+    documentclass: scrartcl
+    geometry:
+      - left=2.5cm
+      - right=2.5cm
+      - top=2.5cm
+      - bottom=2.5cm
+    setspace:
+      linestretch: 1.5
+    template-partials:
+      - partials/before-body.tex
+    include-in-header:
+      - partials/header.tex
+    cite-method: biblatex
+    biblio-style: apa
+    toc: true
+    lof: true
+    number-sections: true
+    execute:
+      echo: false
+      warning: false
+  # html:
+  #   toc: true
+  #   number-sections: true
+  #   code-fold: true
+  #   execute:
+  #     echo: true
+  #     warning: false
+  #   embed-resources: true
+
+bibliography: references.bib

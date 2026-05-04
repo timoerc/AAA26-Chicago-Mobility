@@ -1,0 +1,19 @@
+[project]
+name = "assignment-template" # REPLACE
+version = "0.1.0" # submission version must be 1.0.0
+description = "Quarto template for IS3 team project reports" # REPLACE
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "ipykernel>=6.20.0",
+    "pyyaml>=6.0.0",
+    "jupyter>=1.0.0",
+]
+
+[tool.uv]
+managed = true
+package = false

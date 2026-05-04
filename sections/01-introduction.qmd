@@ -1,0 +1,4 @@
+# Introduction
+This report serves as a template for your team project. It is built using Quarto, which allows you to integrate your Python or R analysis directly into your writing.
+
+By using this template, you ensure that your formatting (margins, line spacing, and fonts) matches the required standards for submission. The left margin is set to 4cm to allow for comments, while the other margins are 2.5cm. Line spacing is set to 1.5, and the main font is Times New Roman.

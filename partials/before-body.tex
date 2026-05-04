@@ -1,0 +1,55 @@
+\begin{titlepage}
+    \begin{center}
+        \vspace*{1cm}
+
+        \Large
+        \textbf{$title$}
+
+        \vspace{0.2cm}
+        \large
+        $course$\\
+        
+        $if(team)$
+        \vspace{0.2cm}
+        \large
+        Team $team$
+        $endif$
+        
+        \vspace{1cm}
+
+        \begin{figure}[htbp]
+             \centering
+             \includegraphics[width=.5\linewidth]{assets/UoC_logo.png}
+        \end{figure}
+
+        \vspace{1cm}
+
+        \large
+        \textbf{Authors}:\\
+        $for(authors)$
+        $if(authors.name)$$authors.name.literal$$else$$authors$$endif$ $if(authors.metadata.student-id)$($authors.metadata.student-id$)$else$none$endif$$sep$\\
+        $endfor$\\
+
+        \large
+        \textbf{Contact}: $contact$\\
+
+        \vspace{1cm}
+        \large
+        \textbf{Supervisor}: $if(supervisor)$$supervisor$$else$Univ.-Prof. Dr. Wolfgang Ketter$endif$\\
+        \large
+        \textbf{Co-Supervisor}: $if(co-supervisor)$$co-supervisor$$else$Max Mustermann$endif$
+
+        \vspace{1cm}
+        \large
+        Chair of Information Systems for Sustainable Society\\
+        Faculty of Management, Economics and Social Sciences\\
+        University of Cologne\\
+
+        \vspace{1cm}
+        $if(date)$$date$$else$\today$endif$
+
+    \end{center}
+\end{titlepage}
+\setcounter{page}{1}
+\pagenumbering{Roman}
+\renewcommand{\headerauthor}{$if(team)$Team $team$ Project Report$else$Project Report$endif$}

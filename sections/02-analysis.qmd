@@ -1,0 +1,40 @@
+# Data Analysis Workflow
+In this section, we demonstrate how to include analysis results in your report. You can either write code directly in this `.qmd` file or reference results from a separate prototyping notebook.
+
+## Prototyping in Notebooks
+You can work on your analysis in the `notebooks/prototyping.ipynb` file. When you are ready to include a result, you can use Quarto's `embed` shortcode. This is a powerful feature that allows you to maintain a clean report while keeping your extensive prototyping code in separate notebooks.
+
+To do this, you must label the specific cell in your notebook using `#| label: fig-some-name` (and optional `#| fig-cap: ...`). Then, you can embed it here like this:
+
+{{< embed notebooks/prototyping.ipynb#fig-prototype-plot >}}
+
+Note that this requires your `.ipynb` notebooks to follow Quarto's cell-metadata syntax.
+
+```{python}
+#| label: fig-sample-plot
+#| fig-cap: "A sample plot generated directly in the report."
+import matplotlib.pyplot as plt
+import numpy as np
+
+x = np.linspace(0, 10, 100)
+y = np.sin(x)
+
+plt.plot(x, y)
+plt.show()
+```
+
+In the PDF version, the code above is hidden by default to keep the report concise and focused on the results. In the HTML version, the code can be expanded using the "Code" button.
+
+::: {.content-visible when-format="html"}
+## Margin Content (HTML only)
+In the interactive HTML version of this report, you can use the margin to show secondary content without breaking the flow of the main text.
+
+```{python}
+#| label: fig-margin-plot
+#| fig-cap: "A small plot in the margin."
+#| column: margin
+
+plt.plot([1, 23, 2, 4])
+plt.show()
+```
+:::

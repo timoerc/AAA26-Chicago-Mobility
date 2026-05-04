@@ -1,0 +1,56 @@
+# Quarto
+.quarto/
+_site/
+_freeze/
+*.quarto_ipynb_*
+*.pdf
+*.html
+*.docx
+*.tex
+# Exception for partials tex files
+!partials/*.tex
+# Exception for final outputs
+!docs/report.pdf
+!docs/report.html
+
+# LaTeX junk
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+*.lot
+*.lof
+*.bbl
+*.blg
+*.run.xml
+*-blx.bib
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.ipynb_checkpoints/
+.env
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Agent/AI Related
+AGENTS.md
+GEMINI.md
+CLAUDE.md
+.gemini/
+.claude/
+.cursor/
+.windsurf/
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+/.quarto/
+**/*.quarto_ipynb
