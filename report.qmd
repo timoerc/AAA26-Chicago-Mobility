@@ -3,16 +3,18 @@ title: "Project Report Template" # Give your report a title
 course: "Advanced Analytics and Applications" # Specify the course name
 team: "00" # Specify your team number
 author:
-  - name: Student 1
-    student-id: "111111111"
-  - name: Student 2
-    student-id: "222222222"
-  - name: Student 3
-    student-id: "333333333"
+  - name: Louis Schreier
+    student-id: "7381065"
+  - name: Daniel Schumacher
+    student-id: "7409287"
+  - name: Paola Ayelen Arenes Alonso
+    student-id: "7453121"
+  - name: Timo Ercole
+    student-id: "7408459"
 contact: student@smail.uni-koeln.de # Specify one contact for the project
 supervisor: "Univ.-Prof. Dr. Wolfgang Ketter"
 co-supervisor: "Janik Muires" # TA of the course is the co-supervisor
-date: 2026-04-01 # Date of submission
+date: 2026-07-26 # Date of submission
 ---
 
 <!-- While you could use \clearpage or \newpage, this is the recommended way to insert a page break in Quarto as it translates to the native page break command for the output format you are using (e.g., \clearpage for PDF, <div style="page-break-after: always;"></div> for HTML). -->
