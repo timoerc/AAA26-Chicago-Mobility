@@ -54,3 +54,6 @@ Thumbs.db
 
 /.quarto/
 **/*.quarto_ipynb
+
+# Project specific
+data/
