@@ -6,7 +6,7 @@ You can work on your analysis in the `notebooks/prototyping.ipynb` file. When yo
 
 To do this, you must label the specific cell in your notebook using `#| label: fig-some-name` (and optional `#| fig-cap: ...`). Then, you can embed it here like this:
 
-{{< embed notebooks/prototyping.ipynb#fig-prototype-plot >}}
+<!-- {{< embed notebooks/prototyping.ipynb#fig-prototype-plot >}} -->
 
 Note that this requires your `.ipynb` notebooks to follow Quarto's cell-metadata syntax.
 

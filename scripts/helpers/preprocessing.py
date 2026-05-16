@@ -2,7 +2,7 @@ import pandas as pd
 import geopandas as gpd
 from pathlib import Path
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 CA_GEOJSON_PATH = ROOT_DIR / "data" / "raw" / "community_areas.geojson"
 
 

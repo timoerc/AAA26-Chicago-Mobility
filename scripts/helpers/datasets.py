@@ -2,9 +2,9 @@ import sys
 import pandas as pd
 from pathlib import Path
 
-from scripts.preprocessing import preprocess_taxi_data
+from scripts.helpers.preprocessing import preprocess_taxi_data
 
-_ROOT = Path(__file__).resolve().parent.parent
+_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 

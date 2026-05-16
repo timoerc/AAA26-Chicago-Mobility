@@ -7,8 +7,6 @@ author:
     student-id: "7381065"
   - name: Daniel Schumacher
     student-id: "7409287"
-  - name: Paola Ayelen Arenes Alonso
-    student-id: "7453121"
   - name: Timo Ercole
     student-id: "7408459"
 contact: student@smail.uni-koeln.de # Specify one contact for the project
