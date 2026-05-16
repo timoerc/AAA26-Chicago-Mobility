@@ -11,8 +11,11 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
     df = df.dropna(subset=["trip_start_timestamp", "trip_end_timestamp"])
 
     # --- Fill missing community areas via spatial join ---
-    ca_gdf = gpd.read_file(ca_path)[["area_number", "geometry"]]
-    ca_gdf["area_number"] = ca_gdf["area_number"].astype(float)
+    ca_gdf = (
+        gpd.read_file(ca_path)[["area_numbe", "geometry"]]
+        .rename(columns={"area_numbe": "area_number"})
+    )
+    ca_gdf["area_number"] = pd.to_numeric(ca_gdf["area_number"], errors="coerce")
     df = _fill_community_area(df, "pickup_centroid_latitude", "pickup_centroid_longitude", "pickup_community_area", ca_gdf)
     df = _fill_community_area(df, "dropoff_centroid_latitude", "dropoff_centroid_longitude", "dropoff_community_area", ca_gdf)
 
@@ -47,5 +50,5 @@ def _fill_community_area(
         crs="EPSG:4326",
     )
     joined = pts.sjoin(ca_gdf, how="left", predicate="within")
-    df.loc[null_mask, ca_col] = joined["area_numbe"].values
+    df.loc[null_mask, ca_col] = joined["area_number"].values
     return df
