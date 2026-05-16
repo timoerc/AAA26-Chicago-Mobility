@@ -66,7 +66,7 @@ WHERE_FILTER = (
 )
 
 # Columns to keep (None = keep all). Reduces file size significantly.
-# Full column list: see dataset documentation linked above.
+# Full column list: see dataset documentation linked above. (Excluded pickup_centroid_location & dropoff_centroid_location)
 COLUMNS = [
     "trip_id",
     "taxi_id",
