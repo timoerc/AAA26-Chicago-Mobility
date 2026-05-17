@@ -30,6 +30,13 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
         & (df["pickup_centroid_longitude"] == df["dropoff_centroid_longitude"])
     )
     df = df[~zero_trip_mask]
+    
+    # --- Remove zero-miles trips with positive duration (likely GPS errors) ---
+    zero_miles_mask = (
+        df["trip_miles"] == 0
+        & (df["trip_seconds"] > 0)
+    )
+    df = df[~zero_miles_mask]
 
     return df.reset_index(drop=True)
 
