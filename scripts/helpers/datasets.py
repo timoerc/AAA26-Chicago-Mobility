@@ -12,7 +12,7 @@ _TAXI_DATA_PATH = _ROOT / "data" / "raw" / "chicago_taxi_trips_2024.csv"
 _TS_COLS = ["trip_start_timestamp", "trip_end_timestamp"]
 
 
-def load_taxi_data(preprocessed: bool = True) -> pd.DataFrame:
+def load_taxi_data(preprocessed: bool) -> pd.DataFrame:
     df = _load_raw_taxi_data()
     if preprocessed:
         df = preprocess_taxi_data(df)
