@@ -1,137 +1,132 @@
 """
-Chicago Daily Weather Downloader
-=================================
-Downloads daily weather summaries for Chicago from the NCEI Access Data Service
-(GHCN-Daily dataset) for the period 2024-01-01 – 2026-04-30.
+Chicago Hourly Weather Downloader (Open-Meteo)
+===============================================
+Downloads hourly weather data for Chicago from the Open-Meteo Historical
+Archive API. No API key or registration required.
 
-Four stations are used to ensure full spatial coverage of all 77 Chicago
-community areas across four geographic zones:
+Coordinates are the k-means cluster centroids derived from taxi pickup
+locations. Run the elbow / silhouette analysis in
+notebooks/01_weather_data_preparation.ipynb first, then paste the
+resulting zone dict into WEATHER_ZONES below.
 
-  Zone         Station ID    Name                              Coverage
-  ──────────── ────────────  ────────────────────────────────  ─────────────────────────────────
-  North/NW     USW00094846   Chicago O'Hare Intl Airport       Far North Side, Northwest Side,
-                                                               O'Hare — primary reference station
-  Southwest    USW00014819   Chicago Midway Airport            Southwest Side, West Side,
-                                                               Garfield Ridge, Marquette Park
-  Central      USC00111577   Chicago Loop / Downtown           Loop, Near North, Near West,
-                                                               Lincoln Park — urban heat island
-  South        USC00111549   Chicago South Shore               Hyde Park, Woodlawn, South Shore,
-                                                               Calumet — southern lakefront zone
+API documentation:
+  https://open-meteo.com/en/docs/historical-weather-api
 
-Dataset documentation:
-  https://www.ncei.noaa.gov/products/land-based-station/global-historical-climatology-network-daily
-
-API reference:
-  https://www.ncei.noaa.gov/support/access-data-service-api-user-documentation
-
-Data types downloaded (GHCN-D field names):
-  TMAX  — Maximum temperature (°C, converted from tenths)
-  TMIN  — Minimum temperature (°C, converted from tenths)
-  TAVG  — Average temperature (°C, converted from tenths)
-  PRCP  — Precipitation (mm, converted from tenths)
-  SNOW  — Snowfall (mm)
-  SNWD  — Snow depth (mm)
-  AWND  — Average wind speed (m/s, converted from tenths)
-  WDF2  — Direction of fastest 2-minute wind (degrees)
-  WSF2  — Fastest 2-minute wind speed (m/s, converted from tenths)
+Hourly variables downloaded:
+  temperature_2m       — Air temperature at 2 m (°C)
+  apparent_temperature — Feels-like temperature (°C)
+  precipitation        — Total precipitation per hour (mm)
+  rain                 — Rainfall component (mm)
+  snowfall             — Snowfall (cm water-equivalent)
+  snow_depth           — Snow depth on ground (m)
+  windspeed_10m        — Wind speed at 10 m (km/h)
+  windgusts_10m        — Wind gusts at 10 m (km/h)
+  weather_code         — WMO weather condition code (0=clear … 99=thunderstorm)
+  cloud_cover          — Total cloud cover (%)
+  visibility           — Visibility (m)
 
 Usage:
-  python download_weather_data.py
+  python scripts/download_weather_data.py
 
 Output:
-  data/raw/chicago_weather_2024_2026.csv
-  (one row per station per day; STATION column identifies the source)
+  data/raw/chicago_weather_hourly.csv
+  (one row per zone per hour; 'zone' column identifies the source)
 """
 
-import os
 import requests
+import pandas as pd
+from datetime import date
 from pathlib import Path
 
-# ── Configuration ─────────────────────────────────────────────────────────────
+# ── Configuration ──────────────────────────────────────────────────────────────
 
-BASE_URL = "https://www.ncei.noaa.gov/access/services/data/v1"
+BASE_URL   = "https://archive-api.open-meteo.com/v1/archive"
 
-# Period of interest
-START_DATE = "2024-01-01"
-END_DATE   = "2026-04-30"
+# Replace with the centroids from get_weather_zone_centers() in the notebook.
+# Format: zone_name → (latitude, longitude)
 
-# GHCN-D station IDs — four stations for full coverage of all 77 community areas
-STATIONS = [
-    "USW00094846",  # [North/NW]   Chicago O'Hare Intl Airport   
-    "USW00014819",  # [Southwest]  Chicago Midway Airport       
-    "USC00111577",  # [Central]    Chicago Loop / Downtown       
-    "USC00111549",  # [South]      Chicago South Shore           
+
+HOURLY_VARIABLES = [
+    "temperature_2m",
+    "apparent_temperature",
+    "precipitation",
+    "rain",
+    "snowfall",
+    "snow_depth",
+    "windspeed_10m",
+    "windgusts_10m",
+    "weather_code",
+    "cloud_cover",
 ]
 
-# Human-readable labels (same order as STATIONS)
-STATION_LABELS = {
-    "USW00094846": "O'Hare Airport       (North/NW)",
-    "USW00014819": "Midway Airport       (Southwest)",
-    "USC00111577": "Chicago Loop/Central (Central)",
-    "USC00111549": "Chicago South Shore  (South)",
-}
-
-# Variables to retrieve (comma-separated in the request)
-DATA_TYPES = ",".join([
-    "TMAX", "TMIN", "TAVG",
-    "PRCP", "SNOW", "SNWD",
-    "AWND", "WDF2", "WSF2",
-])
-
-# Output paths
 REPO_ROOT   = Path(__file__).resolve().parents[1]
-OUTPUT_DIR  = REPO_ROOT / "data" / "raw"
-OUTPUT_FILE = OUTPUT_DIR / "chicago_weather_2024_2026.csv"
+OUTPUT_FILE = REPO_ROOT / "data" / "raw" / "chicago_weather_hourly.csv"
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Helpers ────────────────────────────────────────────────────────────────────
 
-def build_params() -> dict:
-    """Assemble query parameters for the NCEI Access Data Service."""
-    return {
-        "dataset"   : "daily-summaries",
-        "stations"  : ",".join(STATIONS),
-        "startDate" : START_DATE,
-        "endDate"   : END_DATE,
-        "dataTypes" : DATA_TYPES,
-        "format"    : "csv",
-        "units"     : "metric",          # convert tenths-of-unit to standard SI
-        "includeAttributes": "false",    # skip 
-        "includeStationName": "true",
-        "includeStationLocation": "true",
+def _fetch_zone(zone: str, lat: float, lon: float, start_date: date, end_date: date) -> pd.DataFrame:
+    """Fetch hourly data for a single coordinate and return a tidy DataFrame."""
+    params = {
+        "latitude":   lat,
+        "longitude":  lon,
+        "start_date": start_date.strftime("%Y-%m-%d"),
+        "end_date":   end_date.strftime("%Y-%m-%d"),
+        "hourly":     ",".join(HOURLY_VARIABLES),
+        "timezone":   "America/Chicago",
     }
-
-# ── Main download routine ─────────────────────────────────────────────────────
-
-def download():
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    params = build_params()
-
-    print("Downloading Chicago daily weather data from NCEI …")
-    print(f"   Period  : {START_DATE} → {END_DATE}")
-    print(f"   Stations ({len(STATIONS)}):")
-    for sid in STATIONS:
-        print(f"     • {sid}  {STATION_LABELS[sid]}")
-    print(f"   URL     : {BASE_URL}\n")
-
-    resp = requests.get(
-        BASE_URL,
-        params=params,
-        timeout=120,   # large date ranges can take a moment
-    )
+    resp = requests.get(BASE_URL, params=params, timeout=120)
     resp.raise_for_status()
 
-    OUTPUT_FILE.write_bytes(resp.content)
+    hourly = resp.json()["hourly"]
+    df = pd.DataFrame(hourly)
+    df["time"] = pd.to_datetime(df["time"])
+    df["zone"]      = zone
+    df["latitude"]  = lat
+    df["longitude"] = lon
+    return df
 
-    # Number of data rows (excluding header) for all stations combined
-    lines = resp.text.strip().splitlines()
-    row_count = max(0, len(lines) - 1)   # subtract header
+# ── Main download routine ──────────────────────────────────────────────────────
 
-    print(f"✅  Download complete.")
-    print(f"   Output file : {OUTPUT_FILE.resolve()}")
-    print(f"   File size   : {OUTPUT_FILE.stat().st_size / 1_024:.1f} KB")
-    print(f"   Data rows   : {row_count:,}  (all stations combined; use STATION column to filter)")
+def download_weather_data(
+    weather_zones: dict,
+    start_date: date,
+    end_date: date,
+) -> pd.DataFrame:
+    """Download hourly weather for all zones and save to CSV.
+
+    Parameters
+    ----------
+    weather_zones:
+        dict mapping zone name → (lat, lon), e.g. from get_weather_zone_centers().
+    start_date:
+        First date to fetch. Accepts datetime.date or pd.Timestamp (subclass of date).
+    end_date:
+        Last date to fetch. Accepts datetime.date or pd.Timestamp (subclass of date).
+    """
+    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+
+    print("Downloading hourly weather data from Open-Meteo …")
+    print(f"   Period : {start_date} → {end_date}")
+    print(f"   Zones  : {len(weather_zones)}\n")
+
+    frames = []
+    for zone, (lat, lon) in weather_zones.items():
+        print(f"   Fetching {zone}  ({lat:.4f}, {lon:.4f}) …", end=" ", flush=True)
+        df = _fetch_zone(zone, lat, lon, start_date, end_date)
+        frames.append(df)
+        print(f"{len(df):,} rows")
+
+    combined = pd.concat(frames, ignore_index=True)
+    combined.to_csv(OUTPUT_FILE, index=False)
+
+    print(f"\nDone.")
+    print(f"   Rows saved : {len(combined):,}  ({len(weather_zones)} zones × ~{len(combined) // len(weather_zones):,} hours)")
+    print(f"   Output     : {OUTPUT_FILE.resolve()}")
+    return combined
 
 
 if __name__ == "__main__":
-    download()
+    raise SystemExit(
+        "No WEATHER_ZONES defined. Call download_weather_data() from the notebook "
+        "after running get_weather_zone_centers() — see notebooks/01_weather_data_preparation.ipynb."
+    )

@@ -2,10 +2,11 @@ import sys
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
+import json
 
 import osmnx as ox
 
-from scripts.helpers.preprocessing import preprocess_taxi_data
+from scripts.helpers.preprocessing import preprocess_taxi_data, preprocess_weather_data, merge_weather
 
 _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
@@ -13,14 +14,26 @@ if str(_ROOT) not in sys.path:
 
 _TAXI_DATA_PATH = _ROOT / "data" / "raw" / "chicago_taxi_trips_2024.csv"
 _TS_COLS = ["trip_start_timestamp", "trip_end_timestamp"]
-
+_WEATHER_DATA_PATH = _ROOT / "data" / "raw" / "chicago_weather_hourly.csv"
+_WEATHER_ZONES_PATH = _ROOT / "data" / "raw" / "weather_zones.json"
 
 def load_taxi_data(preprocessed: bool) -> pd.DataFrame:
     df = _load_raw_taxi_data()
     if preprocessed:
         df = preprocess_taxi_data(df)
     return df
+def load_weather_data(preprocessed: bool) -> pd.DataFrame:
+    df = load_raw_weather_data()
+    if preprocessed:
+        df = preprocess_weather_data(df)
+    return df
 
+def load_merged_data() -> pd.DataFrame:
+    with open(_WEATHER_ZONES_PATH) as f:
+        weather_zones = {int(k): v for k, v in json.load(f).items()}
+    trips = load_taxi_data(preprocessed=True)
+    weather = load_weather_data(preprocessed=True)
+    return merge_weather(trips, weather, weather_zones)
 
 def load_poi_data() -> gpd.GeoDataFrame:
     """Fetch Chicago POIs from OpenStreetMap and return a categorized GeoDataFrame.
@@ -72,6 +85,18 @@ def load_poi_data() -> gpd.GeoDataFrame:
 def _load_raw_taxi_data(path: Path = _TAXI_DATA_PATH) -> pd.DataFrame:
     df = pd.read_csv(path)
     for col in _TS_COLS:
+        ts = pd.to_datetime(df[col], errors="coerce")
+        try:
+            df[col] = ts.dt.tz_localize("America/Chicago", ambiguous="NaT", nonexistent="NaT")
+        except Exception:
+            # Fallback for environments without IANA timezone data (e.g. Windows without tzdata)
+            df[col] = ts.dt.tz_localize("-06:00")
+    return df
+
+
+def load_raw_weather_data(path: Path = _WEATHER_DATA_PATH) -> pd.DataFrame:
+    df = pd.read_csv(path)
+    for col in ["time"]:
         ts = pd.to_datetime(df[col], errors="coerce")
         try:
             df[col] = ts.dt.tz_localize("America/Chicago", ambiguous="NaT", nonexistent="NaT")

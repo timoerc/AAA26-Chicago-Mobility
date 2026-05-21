@@ -1,6 +1,8 @@
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
+from sklearn.cluster import MiniBatchKMeans
+import numpy as np
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 CA_GEOJSON_PATH = ROOT_DIR / "data" / "raw" / "community_areas.geojson"
@@ -33,7 +35,7 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
     
     # --- Remove zero-miles trips with positive duration (likely GPS errors) ---
     zero_miles_mask = (
-        df["trip_miles"] == 0
+        (df["trip_miles"] == 0)
         & (df["trip_seconds"] > 0)
     )
     df = df[~zero_miles_mask]
@@ -59,3 +61,125 @@ def _fill_community_area(
     joined = pts.sjoin(ca_gdf, how="left", predicate="within")
     df.loc[null_mask, ca_col] = joined["area_number"].values
     return df
+
+def preprocess_weather_data(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+
+    # --- Drop redundant columns ---
+    # precipitation = rain + snowfall and adds no information; rain and snowfall are
+    # kept separately because they have different behavioral effects on taxi demand.
+    # latitude/longitude are redundant with the zone identifier.
+    drop_cols = [c for c in ["precipitation", "latitude", "longitude"] if c in df.columns]
+    df = df.drop(columns=drop_cols)
+
+    # --- Remove duplicate (time, zone) rows ---
+    df = df.drop_duplicates(subset=["time", "zone"])
+
+    # --- Encode weather_code as ordered categories (WMO standard bins) ---
+    # Raw WMO codes are not ordinal (code 95 ≠ "95× worse" than code 1), so feeding
+    # them as integers would imply a false ordering to SVM and neural network models.
+    if "weather_code" in df.columns:
+        df["weather_category"] = df["weather_code"].apply(_categorize_weather_code)
+        df = df.drop(columns=["weather_code"])
+        df = pd.get_dummies(df, columns=["weather_category"], drop_first=True)
+
+    return df.reset_index(drop=True)
+
+
+def _categorize_weather_code(code: int) -> str:
+    if code <= 3:
+        return "clear"
+    elif code <= 48:
+        return "fog"
+    elif code <= 67:
+        return "rain"
+    elif code <= 77:
+        return "snow"
+    elif code <= 82:
+        return "showers"
+    elif code <= 86:
+        return "snow_showers"
+    else:
+        return "storm"
+
+
+def merge_weather(
+    trips: pd.DataFrame,
+    weather: pd.DataFrame,
+    weather_zones: dict,
+) -> pd.DataFrame:
+    """Assign each trip its nearest weather zone then join hourly weather.
+
+    Parameters
+    ----------
+    trips:         preprocessed taxi DataFrame with pickup lat/lon columns
+    weather:       cleaned weather DataFrame with columns [time, zone, ...]
+    weather_zones: dict mapping zone name → (lat, lon), e.g. from k-means centers
+    """
+    zone_names = list(weather_zones.keys())
+    zone_coords = np.array(list(weather_zones.values()))  # shape (n_zones, 2)
+    pickup_coords = trips[["pickup_centroid_latitude", "pickup_centroid_longitude"]].values
+
+    # For a small number of zones, argmin over per-zone distances is sufficient
+    sq_dists = np.array([
+        np.sum((pickup_coords - zone) ** 2, axis=1) for zone in zone_coords
+    ])  # shape (n_zones, n_trips)
+    idx = sq_dists.argmin(axis=0)
+    trips = trips.copy()
+    trips["weather_zone"] = np.array(zone_names)[idx]
+    trips["weather_hour"] = trips["trip_start_timestamp"].dt.floor("h")
+
+    merged = trips.merge(
+        weather,
+        left_on=["weather_zone", "weather_hour"],
+        right_on=["zone", "time"],
+        how="left",
+    ).drop(columns=["time", "weather_zone", "weather_hour"])
+
+    return merged
+
+
+def evaluate_weather_zones(
+    coords: np.ndarray,
+    k_range: range = range(2, 10),
+    silhouette_sample: int = 10_000,
+) -> pd.DataFrame:
+    """Compute elbow (inertia) and silhouette score for each k.
+
+    Returns a DataFrame indexed by k with columns [inertia, silhouette].
+    Pass this to a notebook for plotting — no visualisation happens here.
+    """
+    from sklearn.metrics import silhouette_score
+
+    rows = []
+    for k in k_range:
+        km = MiniBatchKMeans(n_clusters=k, random_state=42, n_init=10)
+        labels = km.fit_predict(coords)
+        rows.append({
+            "k": k,
+            "inertia": km.inertia_,
+            "silhouette": silhouette_score(
+                coords, labels, sample_size=silhouette_sample, random_state=42
+            ),
+        })
+    return pd.DataFrame(rows).set_index("k")
+
+
+def get_weather_zone_centers(coords: np.ndarray, n_clusters: int) -> dict:
+    """Run k-means on trip pickup coordinates and return cluster centers.
+
+    Parameters
+    ----------
+    coords:      array of shape (n_trips, 2) with [lat, lon] pickup coordinates
+    n_clusters:  number of weather zones (chosen from evaluate_weather_zones)
+
+    Returns
+    -------
+    dict mapping zone index (int) → (lat, lon), ready to pass into merge_weather()
+    """
+    km = MiniBatchKMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+    km.fit(coords)
+    return {
+        i: (float(lat), float(lon))
+        for i, (lat, lon) in enumerate(km.cluster_centers_)
+    }
