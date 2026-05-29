@@ -1,7 +1,7 @@
 ---
-title: "Project Report Template" # Give your report a title
+title: "Data-Driven Fleet Operations: Demand Analytics and Smart Charging for Urban Ride-Hailing in Chicago" # Give your report a title
 course: "Advanced Analytics and Applications" # Specify the course name
-team: "00" # Specify your team number
+team: "06" # Specify your team number
 author:
   - name: Louis Schreier
     student-id: "7381065"
@@ -23,10 +23,12 @@ date: 2026-07-26 # Date of submission
 
 {{< include sections/01-introduction.qmd >}}
 
-{{< include sections/02-analysis.qmd >}}
+{{< include sections/02-data-description.qmd >}}
 
-# Citations and References
-You can easily cite your sources using BibLaTeX. For example, you can cite the Quarto documentation [@quarto2024] or a textbook like "R for Data Science" [@wickham2023]. The bibliography will be automatically generated at the end of the document.
+{{< include sections/03-data-preparation.qmd >}}
 
-# Conclusion
-The conclusion should summarize your findings and suggest future work.
+{{< include sections/04-descriptive-analytics.qmd >}}
+
+{{< include sections/05-analytics.qmd >}}
+
+{{< include sections/06-conclusions.qmd >}}

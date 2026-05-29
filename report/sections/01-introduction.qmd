@@ -1,4 +1,21 @@
 # Introduction
-This report serves as a template for your team project. It is built using Quarto, which allows you to integrate your Python or R analysis directly into your writing.
 
-By using this template, you ensure that your formatting (margins, line spacing, and fonts) matches the required standards for submission. The left margin is set to 4cm to allow for comments, while the other margins are 2.5cm. Line spacing is set to 1.5, and the main font is Times New Roman.
+## Business Context
+
+A German automotive manufacturer is launching a ride-hailing platform for US customers, operated entirely by an electrified vehicle fleet. Entering a mature market without established operational expertise, the company requires data-driven guidance on the tactical and strategic management of electric taxi fleets in urban environments.
+
+Bane & Wayne Partners (BWP), a management consultancy, has been engaged to deliver this guidance. This report presents the findings of BWP's Data Science Team, drawing on historical ride-hailing data from Chicago to characterize demand patterns, build predictive models, and develop an intelligent charging strategy for electric vehicles.
+
+## Business Goal and Data Mining Goal
+
+The overarching goal is to equip the client with actionable intelligence for launching and operating an electric ride-hailing fleet in a major US city. Specifically, the analysis addresses three strategic questions:
+
+1. **Where and when is demand concentrated?** Understanding the spatio-temporal structure of ride demand is essential for fleet positioning, driver scheduling, and market entry prioritization.
+2. **How accurately can future demand be forecast?** Reliable predictions reduce idle time, lower per-trip energy consumption, and improve driver earnings.
+3. **How should charging be managed to minimize cost?** Smart charging aligned with electricity price signals and predicted demand can significantly reduce operating costs for an electric fleet.
+
+To answer these questions, the analysis is structured around four tasks. First, the raw trip data is cleaned, spatially discretized using Uber H3 hexagonal grids, and enriched with external weather data (Task 1). Second, descriptive spatial analytics reveal demand hotspots, trip characteristics, and geographic flow patterns (Task 2). Third, two predictive models (a Support Vector Machine and a feedforward neural network) are trained to forecast demand per spatial unit and time bucket (Task 3). Finally, a Reinforcement Learning agent is developed to derive optimal smart-charging policies under stochastic energy demand and dynamic electricity pricing (Task 4).
+
+## Datasets
+
+The analysis draws on three data sources. The primary dataset is historical taxi trip data from Chicago (2024 onwards), obtained from the Chicago Data Portal. It is supplemented by hourly weather data sourced from NOAA and point-of-interest data from OpenStreetMap, which provide contextual factors for demand modeling.
