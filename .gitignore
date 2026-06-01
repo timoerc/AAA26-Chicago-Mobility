@@ -8,7 +8,7 @@ _freeze/
 *.docx
 *.tex
 # Exception for partials tex files
-!partials/*.tex
+!**/partials/*.tex
 # Exception for final outputs
 !docs/report.pdf
 !docs/report.html
@@ -27,6 +27,10 @@ _freeze/
 *.blg
 *.run.xml
 *-blx.bib
+*.bcf
+
+# Quarto per-file render artifacts (e.g. sections/01-introduction_files/)
+**/*_files/
 
 # Python
 .venv/
