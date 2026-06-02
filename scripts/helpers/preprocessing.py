@@ -7,6 +7,16 @@ import numpy as np
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 CA_GEOJSON_PATH = ROOT_DIR / "data" / "raw" / "community_areas.geojson"
 
+# --- Outlier / plausibility cutoffs (Rule 1: drop physically impossible records) ---
+# Thresholds are derived and justified in notebooks/01_data_preparation.ipynb
+# ("Outlier Diagnostics"). They target data errors, not genuine demand extremes.
+SPEED_MIN_MPH     = 2.0        # below tariff-plausible avg speed -> stuck meter / under-recorded distance
+SPEED_MAX_MPH     = 70.0       # above legal sustained speed (p99.9 = 54.5) -> GPS teleport / meter error
+TRIP_SECONDS_MAX  = 3 * 3600   # 3 h -> meter left running (p99.9 = 7,624 s)
+TRIP_MILES_MAX    = 100.0      # exceeds Chicago metro geography (p99.9 = 32.4 mi)
+FARE_PER_MILE_MIN = 2.0        # Chicago $2.25/mi tariff floor (empirical p1 = 2.43)
+FARE_PER_MILE_MAX = 100.0      # short-trip base-fare inflation is legit only below this (p99 = 117.5)
+
 
 def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> pd.DataFrame:
     # --- Drop missing timestamps (DST transition artifacts on 2024-11-03) ---
@@ -39,6 +49,26 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
         & (df["trip_seconds"] > 0)
     )
     df = df[~zero_miles_mask]
+
+    # --- Drop implausible outliers (Rule 1) ---
+    # Derived features used purely for filtering; inf (residual zero-duration /
+    # zero-mile rows) is treated as out-of-range so .between() drops it.
+    df = df.copy()
+    df["speed_mph"] = (
+        df["trip_miles"] / (df["trip_seconds"] / 3600)
+    ).replace([np.inf, -np.inf], np.nan)
+    fare_per_mile = (
+        df["fare"] / df["trip_miles"]
+    ).replace([np.inf, -np.inf], np.nan)
+
+    keep = (
+        (df["fare"] > 0)
+        & (df["trip_miles"] <= TRIP_MILES_MAX)
+        & (df["trip_seconds"] <= TRIP_SECONDS_MAX)
+        & df["speed_mph"].between(SPEED_MIN_MPH, SPEED_MAX_MPH)
+        & fare_per_mile.between(FARE_PER_MILE_MIN, FARE_PER_MILE_MAX)
+    )
+    df = df[keep]
 
     return df.reset_index(drop=True)
 
