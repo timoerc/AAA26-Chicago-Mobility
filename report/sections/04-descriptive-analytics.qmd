@@ -1,5 +1,94 @@
 # Descriptive Analytics
 
+
+
+
 ## Temporal and Trip Patterns
 
+
+
 ## Spatial Analytics
+
+### Spatial Discretization: H3 Hexagonal Grid
+
+To enable a consistent and scalable spatial analysis, Chicago's geography was discretized using Uber's H3 hierarchical hexagonal grid system at resolutions 6, 7, and 8. 
+Unlike census tracts, which follow irregular administrative boundaries, hexagons offer uniform area coverage and adjacency properties that are well-suited for spatial modeling.
+
+![H3 hexagonal grid overlaid on Chicago community areas at resolutions 6, 7, and 8.](../data/raw/h3_grid_chicago.png){width=90% fig-align="center"}
+
+Higher resolutions increase the number of hexagons exponentially while reducing their individual area, enabling finer-grained demand localization at the cost of data sparsity per cell. 
+Resolution 7 was chosen as the primary unit for the subsequent analysis as it strikes a balance between spatial granularity and sufficient trip counts per hexagon for stable estimates.
+
+### Trip Metric Distributions
+
+Before diving into spatial patterns, we first characterize the overall distribution of key trip metrics. 
+All distributions are clipped at the 99th percentile to prevent outliers, such as airport flat-rate rides or exceptional idle gaps from distorting the visualization.
+
+![Distribution of trip duration, distance, fare, tips, total cost, and inter-trip idle time across the full dataset.](../data/raw/trip_metric_distributions.png){width=90% fig-align="center"}
+
+Several patterns stand out. Trip durations are right-skewed with a median around 600–700 seconds (~10 minutes), indicating that the majority of rides are relatively short urban hops. 
+Trip distances mirror this pattern, with most trips under 5 miles. Fare and total cost distributions confirm the dominance of low-cost short rides, with a long tail driven by airport and cross-city trips. 
+The tip distribution is has some extraordinary high counts at specific tip amounts, which could reflecting the large share of cashless predefined tips. 
+Idle time between consecutive trips per driver is concentrated in the 0–30 minute range, suggesting reasonably efficient utilization, though the mean around 60 minutes indicates periods of deliberate waiting or repositioning.
+
+### Spatial Demand Analysis
+
+### Demand by Community Area and Hexagon Resolution
+
+To understand how spatial aggregation affects observed demand patterns, we compare pickup counts across three levels: community area, H3 resolution 6, and H3 resolutions 7 and 8.
+
+![Choropleth maps of pickup demand aggregated at community area level and H3 resolutions 6, 7, and 8.](../data/raw/demand_choropleth.png){width=90% fig-align="center"}
+
+At the community area level, the Near North Side and the Loop stand out as the dominant demand centers, consistent with their role as Chicago's central business and entertainment district. 
+The pattern is also visible in the airport community areas particularly O'Hare in the northwest, which generates a structurally distinct demand cluster far from the city center.
+
+As resolution increases from H3-6 to H3-8, the hotspots sharpen considerably. 
+At resolution 7, the spatial signal localizes to specific corridors: the Magnificent Mile, the River North entertainment district, and the area immediately surrounding O'Hare. 
+Zones with moderate activity at coarser resolutions, such as the South Loop or Wicker Park, reveal internal heterogeneity at finer scales, with some sub-areas generating substantially higher demand than their neighbors. 
+This demonstrates that aggregation at the community area level masks actionable sub-neighborhood variation that is relevant for fleet positioning decisions.
+
+### Temporal Demand Patterns Across Space
+
+Demand does not only vary spatially but also shifts throughout the day. 
+To capture this, pickups were aggregated into 4-hour time buckets at H3 resolution 7, and a choropleth map was produced for each bucket.
+
+![Pickup demand by 4-hour time bucket at H3 resolution 6, covering the full 24-hour cycle.](../data/raw/demand_4h_buckets.png){width=90% fig-align="center"}
+
+The northeastern lakefront and downtown corridor is the dominant demand hub across all time buckets, confirming its role as a structurally persistent hotspot regardless of the time of day. 
+During the night window (00:00–03:59), overall demand is low but the downtown core retains relative activity, consistent with late-night hospitality and entertainment traffic. 
+The early morning bucket (04:00–07:59) reveals a distinct secondary hotspot around Midway Airport in the southwest, attributable to early departures. 
+The morning and midday buckets (08:00–15:59) see demand spread more broadly across the eastern half of the city, reflecting a mix of commuter, business, and leisure travel. 
+The afternoon and evening windows (12:00–19:59) represent the peak demand period, with the downtown core intensifying sharply while outer neighborhoods remain comparatively quiet. 
+From 20:00 onwards, activity tapers off but the lakefront strip retains a persistent hotspot driven by restaurant and nightlife traffic.
+
+### Temporal Demand Patterns
+
+### Heatmap: Hour of Day × Day of Week
+
+The following heatmap cross-tabulates total pickups by hour of day and day of week, providing a compact view of how demand is structured across the weekly cycle.
+
+![Pickup demand heatmap cross-tabulated by hour of day and day of week.](../data/raw/heatmap_hour_dow.png){width=90% fig-align="center"}
+
+The bulk of trips occur between 07:00 and 19:00 on weekdays, forming a dense demand block from Tuesday to Thursday that represents the highest observed demand in the dataset. 
+Weekends show a distinctly different rhythm: demand starts later in the morning, lacks a pronounced commuter spike, and trails off more gradually in the evening, consistent with leisure rather than work-driven travel. 
+The 00:00–06:00 window is uniformly quiet across all days, making it a natural candidate for driver rest periods or vehicle charging windows in an electric fleet context.
+
+### Origin–Destination Analysis
+
+To understand mobility flows between areas, an origin–destination (OD) matrix was constructed for the top 10 community areas by outgoing trip volume.
+
+![Origin–destination matrix for the top 10 community areas by total trip volume.](../data/raw/od_matrix_community.png){width=90% fig-align="center"}
+
+The Near North Side and the Loop dominate both as origins and as destinations by a wide margin, reinforcing their central role in Chicago's taxi network. 
+Despite its geographic isolation in the northwest, O'Hare International Airport generates nearly 500,000 trips directed toward the Near North Side and Loop alone, confirming the airport-to-downtown corridor as one of the most important in the network.
+For a fleet operator, could imply that vehicles dropping off passengers in outer neighborhoods face a structural repositioning challenge to return to high-demand areas, in comparison to trips on the main demand corridor of the city.
+
+### Spatio-Temporal Net Flow Analysis
+
+Beyond raw pickup and dropoff counts, net flow, defined as pickups minus dropoffs per hexagon, reveals where demand is structurally generated versus absorbed. This metric is directly actionable for fleet operators: zones with persistently positive net flow indicate areas where more vehicles are needed than are being returned by dropoffs, while negative net flow areas signal vehicle accumulation that may require active redistribution.
+
+![Net flow (pickups-dropoffs) by H3 hexagon, aggregated across the full observation period.](../data/raw/netflow_4h_buckets.png){width=90% fig-align="center"}
+
+The downtown core and the O'Hare corridor show the most pronounced positive net flow, meaning that taxi demand in these areas consistently exceeds the volume of vehicles returned by dropoffs. 
+The residential outskirts, by contrast, exhibit negative net flow, acting as vehicle sinks that absorb supply without generating equivalent demand in return. 
+For an electric fleet operator, this spatial imbalance has direct implications for charging infrastructure placement: charging points situated in negative-flow residential areas could serve as productive holding locations, where idle vehicles recharge between shifts as we expect idle times to be larger, and before being repositioned to high-demand corridors. 
