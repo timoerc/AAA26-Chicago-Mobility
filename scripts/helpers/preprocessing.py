@@ -3,6 +3,7 @@ import geopandas as gpd
 from pathlib import Path
 from sklearn.cluster import MiniBatchKMeans
 import numpy as np
+import holidays
 
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 CA_GEOJSON_PATH = ROOT_DIR / "data" / "raw" / "community_areas.geojson"
@@ -70,7 +71,34 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
     )
     df = df[keep]
 
+    
+
     return df.reset_index(drop=True)
+
+
+def _add_temporal_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Derive calendar features from the (tz-aware, local) trip start time.
+
+    These feed the demand-forecasting models (trips per spatial unit and time
+    bucket). Raw integer/categorical fields are kept; cyclical (sin/cos)
+    encodings are intentionally left to the modeling step.
+    """
+    df = df.copy()
+    ts = df["trip_start_timestamp"].dt
+
+    df["date"]        = ts.date                                # calendar day
+    df["hour"]        = ts.hour.astype("Int64")                                # 0–23
+    df["day_of_week"] = ts.dayofweek.astype("Int64")                         # 0 = Monday … 6 = Sunday
+    df["is_weekend"]  = ts.dayofweek.isin([5, 6])              # Sat/Sun flag
+    df["week"]        = ts.isocalendar().week.astype("Int64")  # ISO week number
+    df["month"]       = ts.month.astype("Int64")                               # 1–12
+
+    # US (Illinois) public-holiday flag(demand differs strongly on holidays)
+    years = range(int(ts.year.min()), int(ts.year.max()) + 1)
+    us_il_holidays = holidays.US(subdiv="IL", years=years)
+    df["is_holiday"] = df["date"].isin(set(us_il_holidays))
+
+    return df
 
 
 def _fill_community_area(
