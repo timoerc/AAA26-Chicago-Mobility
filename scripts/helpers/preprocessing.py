@@ -122,43 +122,8 @@ def _fill_community_area(
 
 def preprocess_weather_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
-
-    # --- Drop redundant columns ---
-    # precipitation = rain + snowfall and adds no information; rain and snowfall are
-    # kept separately because they have different behavioral effects on taxi demand.
-    # latitude/longitude are redundant with the zone identifier.
-    drop_cols = [c for c in ["precipitation", "latitude", "longitude"] if c in df.columns]
-    df = df.drop(columns=drop_cols)
-
-    # --- Remove duplicate (time, zone) rows ---
-    df = df.drop_duplicates(subset=["time", "zone"])
-
-    # --- Encode weather_code as ordered categories (WMO standard bins) ---
-    # Raw WMO codes are not ordinal (code 95 ≠ "95× worse" than code 1), so feeding
-    # them as integers would imply a false ordering to SVM and neural network models.
-    if "weather_code" in df.columns:
-        df["weather_category"] = df["weather_code"].apply(_categorize_weather_code)
-        df = df.drop(columns=["weather_code"])
-        df = pd.get_dummies(df, columns=["weather_category"], drop_first=True)
-
+    df = df.drop(columns=["latitude", "longitude", "weather_code"])
     return df.reset_index(drop=True)
-
-
-def _categorize_weather_code(code: int) -> str:
-    if code <= 3:
-        return "clear"
-    elif code <= 48:
-        return "fog"
-    elif code <= 67:
-        return "rain"
-    elif code <= 77:
-        return "snow"
-    elif code <= 82:
-        return "showers"
-    elif code <= 86:
-        return "snow_showers"
-    else:
-        return "storm"
 
 
 def merge_weather(
