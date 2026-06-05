@@ -17,12 +17,9 @@ _TS_COLS = ["trip_start_timestamp", "trip_end_timestamp"]
 _WEATHER_DATA_PATH = _ROOT / "data" / "raw" / "chicago_weather_hourly.csv"
 _WEATHER_ZONES_PATH = _ROOT / "data" / "raw" / "weather_zones.json"
 
-def load_taxi_data(preprocessed: bool, feature_Engineering: bool) -> pd.DataFrame:
+def load_taxi_data(preprocessed: bool) -> pd.DataFrame:
     df = _load_raw_taxi_data()
-    
-    # --- Derive temporal features for the demand models ---
-    if feature_Engineering:
-        df = _add_temporal_features(df)
+    df = _add_temporal_features(df)
     if preprocessed:
         df = preprocess_taxi_data(df)
     return df
