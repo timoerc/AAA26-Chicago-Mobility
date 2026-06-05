@@ -33,7 +33,7 @@ def load_weather_data(preprocessed: bool) -> pd.DataFrame:
 def load_merged_data() -> pd.DataFrame:
     with open(_WEATHER_ZONES_PATH) as f:
         weather_zones = {int(k): v for k, v in json.load(f).items()}
-    trips = load_taxi_data(preprocessed=True, feature_engineering=True)
+    trips = load_taxi_data(preprocessed=True)
     weather = load_weather_data(preprocessed=True)
     return merge_weather(trips, weather, weather_zones)
 
