@@ -54,12 +54,14 @@ def prepare_modelling(
 
     # 4. Derive calendar features from each bucket's start time (tz-aware, local Chicago time).
     ts = panel["time_bucket"].dt
-    panel["date"]        = ts.date                                # calendar day
+    panel["day"]        = ts.day.astype("Int64")                                # calendar day
+    panel["month"]       = ts.month.astype("Int64")              # 1–12
     panel["hour"]        = ts.hour.astype("Int64")               # 0–23
     panel["day_of_week"] = ts.dayofweek.astype("Int64")          # 0 = Monday … 6 = Sunday
-    panel["is_weekend"]  = ts.dayofweek.isin([5, 6])             # Sat/Sun flag
     panel["week"]        = ts.isocalendar().week.astype("Int64") # ISO week number
-    panel["month"]       = ts.month.astype("Int64")              # 1–12
+    panel["is_weekend"]  = ts.dayofweek.isin([5, 6])             # Sat/Sun flag
+    
+    
 
     # 5. Flag US (Illinois) public holidays (demand deviates strongly on holidays).
     panel = add_holiday(panel)
@@ -79,15 +81,15 @@ def prepare_modelling(
 
 
 def add_holiday(df: pd.DataFrame) -> pd.DataFrame:
-    """Flag US (Illinois) public holidays from the frame's ``date`` column.
+    """Flag US (Illinois) public holidays from the frame's ``time_bucket`` column.
 
-    Works on any frame carrying a ``date`` column (trip- or panel-level), since
-    demand differs strongly on holidays such as Independence Day or Christmas.
+    Demand differs strongly on holidays such as Independence Day or Christmas.
     """
     df = df.copy()
-    years = range(df["date"].min().year, df["date"].max().year + 1)
+    dates = df["time_bucket"].dt.date
+    years = range(df["time_bucket"].min().year, df["time_bucket"].max().year + 1)
     us_il_holidays = holidays.US(subdiv="IL", years=years)
-    df["is_holiday"] = df["date"].isin(set(us_il_holidays))
+    df["is_holiday"] = dates.isin(set(us_il_holidays))
     return df
 
 def create_cyclic_features(df):
