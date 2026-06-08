@@ -68,6 +68,7 @@ def prepare_modelling(
 
     # 6. Add cyclic (sin/cos) encodings so the model sees calendar wrap-around.
     panel = create_cyclic_features(panel)
+    panel.drop(columns=["day", "week", "month", "hour", "day_of_week"], inplace=True)
 
     # 7. Load the hourly weather table + k-means weather-zone centers (zone -> (lat, lon)).
     weather = load_weather_data(preprocessed=True)
