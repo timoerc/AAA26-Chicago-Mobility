@@ -1,6 +1,6 @@
 import sys
 from typing import Literal
-
+import h3
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
@@ -18,6 +18,7 @@ _TAXI_DATA_PATH = _ROOT / "data" / "raw_parts" / "chicago_taxi_trips_2024.csv"
 _TS_COLS = ["trip_start_timestamp", "trip_end_timestamp"]
 _WEATHER_DATA_PATH = _ROOT / "data" / "raw" / "chicago_weather_hourly.csv"
 _WEATHER_ZONES_PATH = _ROOT / "data" / "raw" / "weather_zones.json"
+_PROCESSED_DIR = _ROOT / "data" / "processed"
 
 def load_taxi_data(
     preprocessed: bool = True,
@@ -128,3 +129,35 @@ def _load_raw_weather_data(path: Path = _WEATHER_DATA_PATH) -> pd.DataFrame:
             # Fallback for environments without IANA timezone data (e.g. Windows without tzdata)
             df[col] = ts.dt.tz_localize("-06:00")
     return df
+
+def load_poi_features(resolution: int, force_refresh: bool = False) -> pd.DataFrame:
+    """Per-hexagon, per-category POI counts at the given H3 resolution.
+    Static spatial features for the demand panel: one row per H3 cell with one
+    ``n_poi_<category>`` column per POI category, counting the POIs whose
+    location falls in that cell. POIs are fetched from OSM via
+    :func:`load_poi_data` and aggregated to ``resolution`` — which **must match**
+    the resolution used to build the demand panel, or the join will not align.
+    The result is cached to ``data/processed/poi_features_r{resolution}.pkl`` so
+    the slow, networked OSM fetch runs only once per resolution; pass
+    ``force_refresh=True`` to rebuild it.
+    Returns
+    -------
+    DataFrame
+        Columns ``['h3_id', 'n_poi_<category>', ...]`` (integer counts).
+    """
+    cache_path = _PROCESSED_DIR / f"poi_features_r{resolution}.pkl"
+    if cache_path.exists() and not force_refresh:
+        return pd.read_pickle(cache_path)
+    pois = load_poi_data()
+    h3_ids = [h3.latlng_to_cell(geom.y, geom.x, resolution) for geom in pois.geometry]
+    counts = (
+        pd.DataFrame({"h3_id": h3_ids, "category": pois["category"].to_numpy()})
+        .groupby(["h3_id", "category"]).size()
+        .unstack(fill_value=0)
+        .add_prefix("n_poi_")
+        .reset_index()
+    )
+    counts.columns.name = None
+    cache_path.parent.mkdir(parents=True, exist_ok=True)
+    counts.to_pickle(cache_path)
+    return counts

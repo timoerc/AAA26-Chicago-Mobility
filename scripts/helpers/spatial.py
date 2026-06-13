@@ -247,3 +247,36 @@ def add_weather_to_panel(
         how="left",
     ).drop(columns=["_zone", weather_zone_col])
     return out
+
+def add_poi_to_panel(
+    panel: pd.DataFrame,
+    poi_features: pd.DataFrame,
+    panel_hex_col: str = "h3_id",
+) -> pd.DataFrame:
+    """Left-join static per-hexagon POI counts onto a demand panel.
+    POI counts are time-invariant, so they attach on the hexagon id alone and
+    broadcast across every time bucket of that cell. Cells with no POIs receive
+    ``0`` (a real absence, not missing data). ``poi_features`` must be aggregated
+    at the **same H3 resolution** used to build ``panel`` — see
+    :func:`scripts.helpers.datasets.load_poi_features`.
+    Parameters
+    ----------
+    panel : DataFrame
+        Demand panel with a ``panel_hex_col`` hexagon id.
+    poi_features : DataFrame
+        Per-hexagon counts: an ``h3_id`` column plus one ``n_poi_*`` column per
+        category (output of :func:`load_poi_features`).
+    Returns
+    -------
+    DataFrame
+        ``panel`` with the ``n_poi_*`` columns appended (left join, every panel
+        row preserved).
+    """
+    poi = poi_features.copy()
+    # Align the join-key dtype (panel uses pandas 'string', POI ids are object).
+    poi["h3_id"] = poi["h3_id"].astype(panel[panel_hex_col].dtype)
+    poi_cols = [c for c in poi.columns if c != "h3_id"]
+    out = panel.merge(poi, how="left", left_on=panel_hex_col, right_on="h3_id")
+    if panel_hex_col != "h3_id" and "h3_id" in out.columns:
+        out = out.drop(columns="h3_id")
+    out[poi_cols] = out[poi_cols].fillna(0).astype("int64")

@@ -3,8 +3,8 @@ import numpy as np
 import h3
 import holidays
 import json
-from scripts.helpers.datasets import load_taxi_data, load_weather_data, _WEATHER_ZONES_PATH
-from scripts.helpers.spatial import add_h3_cells, build_demand_panel, add_weather_to_panel
+from scripts.helpers.datasets import load_taxi_data, load_weather_data, load_poi_features, _WEATHER_ZONES_PATH
+from scripts.helpers.spatial import add_h3_cells, build_demand_panel, add_weather_to_panel, add_poi_to_panel
 
 
 
@@ -43,7 +43,7 @@ def prepare_modelling(
         calendar + cyclic encodings, and per-bucket weather columns appended.
     """
     # 1. Load the preprocessed trip table.
-    df = load_taxi_data(preprocessed=True)
+    df = load_taxi_data(preprocessed=True, mode='trip')
 
     # 2. Assign each trip to its pickup H3 cell if not already present.
     if f"pickup_h3_r{resolution}" not in df.columns:
@@ -77,6 +77,9 @@ def prepare_modelling(
 
     # 8. Join weather onto every panel row (zero-demand rows included), aggregated to freq.
     panel = add_weather_to_panel(panel, weather, weather_zones, freq=freq)
+
+    # 9. Join per-category POI counts at the panel level (same H3 resolution as the panel).
+    panel = add_poi_to_panel(panel, load_poi_features(resolution=resolution))
 
     return panel
 
