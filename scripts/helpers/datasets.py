@@ -1,4 +1,6 @@
 import sys
+from typing import Literal
+
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
@@ -12,20 +14,38 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-_TAXI_DATA_PATH = _ROOT / "data" / "raw" / "chicago_taxi_trips_2024.csv"
+_TAXI_DATA_PATH = _ROOT / "data" / "raw_parts" / "chicago_taxi_trips_2024.csv"
 _TS_COLS = ["trip_start_timestamp", "trip_end_timestamp"]
 _WEATHER_DATA_PATH = _ROOT / "data" / "raw" / "chicago_weather_hourly.csv"
 _WEATHER_ZONES_PATH = _ROOT / "data" / "raw" / "weather_zones.json"
 
-def load_taxi_data(preprocessed: bool) -> pd.DataFrame:
+def load_taxi_data(
+    preprocessed: bool = True,
+    mode: Literal["trip", "demand"] = "trip",
+) -> pd.DataFrame:
+    """Load the raw Chicago taxi CSV, add temporal features, and optionally clean.
+
+    Parameters
+    ----------
+    preprocessed:
+        If True, apply ``preprocess_taxi_data`` according to ``mode``.
+        If False, return raw data with temporal features only; ``mode`` is ignored.
+    mode:
+        ``'trip'``   – full cleaning pipeline; use for trip-level analyses
+                       (fare, distance, speed, duration). Default.
+        ``'demand'`` – minimal cleaning for demand-forecasting targets; keeps
+                       every row with a valid pickup timestamp and location,
+                       including trips with faulty trip metadata.
+        Ignored when ``preprocessed=False``.
+    """
     df = _load_raw_taxi_data()
     df = _add_temporal_features(df)
     if preprocessed:
-        df = preprocess_taxi_data(df)
+        df = preprocess_taxi_data(df, mode=mode)
     return df
 
 def load_weather_data(preprocessed: bool) -> pd.DataFrame:
-    df = load_raw_weather_data()
+    df = _load_raw_weather_data()
     if preprocessed:
         df = preprocess_weather_data(df)
     return df
@@ -86,6 +106,8 @@ def load_poi_data() -> gpd.GeoDataFrame:
 
 def _load_raw_taxi_data(path: Path = _TAXI_DATA_PATH) -> pd.DataFrame:
     df = pd.read_csv(path)
+    for col in ["pickup_census_tract", "dropoff_census_tract"]:
+        df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64").astype("string")
     for col in _TS_COLS:
         ts = pd.to_datetime(df[col], errors="coerce")
         try:
@@ -96,7 +118,7 @@ def _load_raw_taxi_data(path: Path = _TAXI_DATA_PATH) -> pd.DataFrame:
     return df
 
 
-def load_raw_weather_data(path: Path = _WEATHER_DATA_PATH) -> pd.DataFrame:
+def _load_raw_weather_data(path: Path = _WEATHER_DATA_PATH) -> pd.DataFrame:
     df = pd.read_csv(path)
     for col in ["time"]:
         ts = pd.to_datetime(df[col], errors="coerce")

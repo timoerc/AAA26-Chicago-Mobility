@@ -3,6 +3,12 @@ import numpy as np
 import h3
 
 
+def _latlng_to_cell_safe(lat, lon, resolution):
+    if pd.isna(lat) or pd.isna(lon):
+        return pd.NA
+    return h3.latlng_to_cell(lat, lon, resolution)
+
+
 def add_h3_cells(df: pd.DataFrame, resolution: int) -> None:
     """Add pickup_h3 and dropoff_h3 columns in-place to df_demand."""
     # For all lat/lon pairs in pickup/dropoff, convert into h3 hexID the event occured in
@@ -11,11 +17,11 @@ def add_h3_cells(df: pd.DataFrame, resolution: int) -> None:
     # latlng_to_cell converts (lat, lon) to h3 hexID (the tuple lays in) at given resolution
     # Zip combines lat/long cols into pairs
     df[f'pickup_h3_r{resolution}'] = pd.array(
-        [h3.latlng_to_cell(lat, lon, resolution) for lat, lon in zip(df['pickup_centroid_latitude'], df['pickup_centroid_longitude'])],
+        [_latlng_to_cell_safe(lat, lon, resolution) for lat, lon in zip(df['pickup_centroid_latitude'], df['pickup_centroid_longitude'])],
         dtype='string'
     )
     df[f'dropoff_h3_r{resolution}'] = pd.array(
-        [h3.latlng_to_cell(lat, lon, resolution) for lat, lon in zip(df['dropoff_centroid_latitude'], df['dropoff_centroid_longitude'])],
+        [_latlng_to_cell_safe(lat, lon, resolution) for lat, lon in zip(df['dropoff_centroid_latitude'], df['dropoff_centroid_longitude'])],
         dtype='string'
     )
 

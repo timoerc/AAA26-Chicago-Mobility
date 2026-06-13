@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pandas as pd
 import geopandas as gpd
 from pathlib import Path
@@ -19,11 +21,39 @@ FARE_PER_MILE_MIN = 2.0        # Chicago $2.25/mi tariff floor (empirical p1 = 2
 FARE_PER_MILE_MAX = 100.0      # short-trip base-fare inflation is legit only below this (p99 = 117.5)
 
 
-def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> pd.DataFrame:
-    # --- Drop missing timestamps (DST transition artifacts on 2024-11-03) ---
+def preprocess_taxi_data(
+    df: pd.DataFrame,
+    ca_path: Path = CA_GEOJSON_PATH,
+    mode: Literal["trip", "demand"] = "trip",
+) -> pd.DataFrame:
+    """Clean the raw taxi DataFrame.
+
+    Two cleaning tiers are available via the ``mode`` parameter:
+
+    ``mode='demand'``
+        Minimal cleaning for building demand-forecasting targets (pickup counts
+        per time bucket and spatial unit).  Only rows with a missing start
+        timestamp are dropped, and community areas are imputed from centroid
+        coordinates.  Every row with a valid pickup time and location is kept —
+        including trips where other metadata (fare, distance, speed, taxi_id) is
+        absent or implausible.  A real passenger hailing a cab is a real demand
+        signal regardless of how the trip was recorded.
+
+    ``mode='trip'``  *(default, backwards-compatible)*
+        Full cleaning pipeline for trip-level analyses (distance, fare, speed,
+        duration).  On top of the demand-mode steps, also drops: missing
+        taxi_id, ghost trips (zero duration + same location), zero-mile GPS
+        errors, and Rule-1 implausible outliers (fare, speed, distance, and
+        fare-per-mile bounds — thresholds defined in this module and justified
+        in ``notebooks/01a_taxi_data_preparation.ipynb``).
+    """
+    df = df.copy()
+
+    # --- Shared by both modes ---
+    # Drop DST transition artifacts (2024-11-03 fall-back hour → NaT timestamps)
     df = df.dropna(subset=["trip_start_timestamp", "trip_end_timestamp"])
 
-    # --- Fill missing community areas via spatial join ---
+    # Impute missing community areas from centroid coordinates via spatial join
     ca_gdf = (
         gpd.read_file(ca_path)[["area_numbe", "geometry"]]
         .rename(columns={"area_numbe": "area_number"})
@@ -32,10 +62,15 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
     df = _fill_community_area(df, "pickup_centroid_latitude", "pickup_centroid_longitude", "pickup_community_area", ca_gdf)
     df = _fill_community_area(df, "dropoff_centroid_latitude", "dropoff_centroid_longitude", "dropoff_community_area", ca_gdf)
 
-    # --- Drop rows with missing taxi_id ---
+    if mode == "demand":
+        return df.reset_index(drop=True)
+
+    # --- Trip mode only: remove rows where trip metadata is invalid or implausible ---
+
+    # Drop rows with missing taxi_id (can't link to a vehicle)
     df = df.dropna(subset=["taxi_id"])
 
-    # --- Remove zero-movement trips (same location, zero duration) ---
+    # Remove zero-movement trips (same location, zero duration) — no mobility signal
     zero_trip_mask = (
         (df["trip_seconds"] == 0)
         & (df["trip_end_timestamp"] == df["trip_start_timestamp"])
@@ -43,18 +78,17 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
         & (df["pickup_centroid_longitude"] == df["dropoff_centroid_longitude"])
     )
     df = df[~zero_trip_mask]
-    
-    # --- Remove zero-miles trips with positive duration (likely GPS errors) ---
+
+    # Remove zero-miles trips with positive duration (likely GPS errors)
     zero_miles_mask = (
         (df["trip_miles"] == 0)
         & (df["trip_seconds"] > 0)
     )
     df = df[~zero_miles_mask]
 
-    # --- Drop implausible outliers (Rule 1) ---
+    # Rule 1: drop physically impossible records
     # Derived features used purely for filtering; inf (residual zero-duration /
     # zero-mile rows) is treated as out-of-range so .between() drops it.
-    df = df.copy()
     df["speed_mph"] = (
         df["trip_miles"] / (df["trip_seconds"] / 3600)
     ).replace([np.inf, -np.inf], np.nan)
@@ -69,9 +103,7 @@ def preprocess_taxi_data(df: pd.DataFrame, ca_path: Path = CA_GEOJSON_PATH) -> p
         & df["speed_mph"].between(SPEED_MIN_MPH, SPEED_MAX_MPH)
         & fare_per_mile.between(FARE_PER_MILE_MIN, FARE_PER_MILE_MAX)
     )
-    df = df[keep]
-
-    
+    df = df[keep].drop(columns=["speed_mph"])
 
     return df.reset_index(drop=True)
 
