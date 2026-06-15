@@ -280,3 +280,4 @@ def add_poi_to_panel(
     if panel_hex_col != "h3_id" and "h3_id" in out.columns:
         out = out.drop(columns="h3_id")
     out[poi_cols] = out[poi_cols].fillna(0).astype("int64")
+    return out
