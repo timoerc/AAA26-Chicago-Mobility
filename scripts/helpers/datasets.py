@@ -14,7 +14,7 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-_TAXI_DATA_PATH = _ROOT / "data" / "raw_parts" / "chicago_taxi_trips_2024.csv"
+_TAXI_DATA_PATH = _ROOT / "data" / "raw" / "chicago_taxi_trips_2024.csv"
 _TS_COLS = ["trip_start_timestamp", "trip_end_timestamp"]
 _WEATHER_DATA_PATH = _ROOT / "data" / "raw" / "chicago_weather_hourly.csv"
 _WEATHER_ZONES_PATH = _ROOT / "data" / "raw" / "weather_zones.json"
