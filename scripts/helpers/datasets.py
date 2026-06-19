@@ -121,13 +121,40 @@ def _load_raw_taxi_data(path: Path = _TAXI_DATA_PATH) -> pd.DataFrame:
 
 def _load_raw_weather_data(path: Path = _WEATHER_DATA_PATH) -> pd.DataFrame:
     df = pd.read_csv(path)
-    for col in ["time"]:
-        ts = pd.to_datetime(df[col], errors="coerce")
-        try:
-            df[col] = ts.dt.tz_localize("America/Chicago", ambiguous="NaT", nonexistent="NaT")
-        except Exception:
-            # Fallback for environments without IANA timezone data (e.g. Windows without tzdata)
-            df[col] = ts.dt.tz_localize("-06:00")
+
+    ts = pd.to_datetime(df["time"], errors="coerce")
+    try:
+        # Localize naive Chicago clock times, resolving DST instead of dropping it:
+        #   - ambiguous=True   -> the single duplicated 01:00 on fall-back day is
+        #                          taken as the first (CDT) occurrence
+        #   - nonexistent=NaT  -> the impossible 02:00 on spring-forward day is
+        #                          flagged so we can drop it below
+        df["time"] = ts.dt.tz_localize(
+            "America/Chicago", ambiguous=True, nonexistent="NaT"
+        )
+
+        # Drop the spring-forward rows whose clock time never existed.
+        df = df[df["time"].notna()].copy()
+
+        # Reindex onto a complete hourly grid. A tz-aware Chicago range includes
+        # BOTH 01:00 instances in fall and SKIPS 02:00 in spring, so this both
+        # creates the one genuinely-missing fall-back hour and avoids phantom rows.
+        full_idx = pd.date_range(
+            df["time"].min(), df["time"].max(), freq="h", tz="America/Chicago"
+        )
+        df = df.set_index("time").reindex(full_idx)
+        df.index.name = "time"
+
+        # Interpolate the single new fall-back gap on numeric columns only.
+        num_cols = df.select_dtypes("number").columns
+        df[num_cols] = df[num_cols].interpolate("time")
+        df = df.reset_index()
+    except Exception:
+        # Fallback for environments without IANA timezone data (e.g. Windows
+        # without tzdata). A fixed offset has no DST transitions, so there are
+        # no ambiguous/nonexistent hours to resolve.
+        df["time"] = ts.dt.tz_localize("-06:00")
+
     return df
 
 def load_poi_features(resolution: int, force_refresh: bool = False) -> pd.DataFrame:
