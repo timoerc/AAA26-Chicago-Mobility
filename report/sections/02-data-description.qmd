@@ -1,1 +1,86 @@
 # Data Description
+
+The analysis draws on three data sources: historical taxi trip records from Chicago, hourly weather observations, and point-of-interest data from OpenStreet Map. 
+Together they cover demand, environmental context, and urban structure needed to characterize ride-hailing patterns and build predictive models.
+
+## Taxi Trip Data
+
+The primary dataset was downloaded from the Chicago Data Portal on 10 May 2026 and contains all taxi trips recorded in Chicago from January 2024 onwoards.
+In raw form, the dataset comprises **14,985,679 trips** across 21 columns. 
+Seven additional temporal features (date, hour, day of week, month, year, week, and whether a day is a weekened) arte derived during loading, bringing the working column count to 28.
+
+@tbl-taxi-columns summarizes the most relevant fields.
+
+ | Column | Type | Description |
+|---|---|---|
+| `trip_id` | string | SHA-1 hash; unique journey identifier |
+| `taxi_id` | string | SHA-1 hash; anonymised vehicle identifier |
+| `trip_start_timestamp` | datetime (UTC−6) | Rounded to the nearest 15 minutes |
+| `trip_end_timestamp` | datetime (UTC−6) | Rounded to the nearest 15 minutes |
+| `trip_seconds` | float | Recorded journey duration in seconds |
+| `trip_miles` | float | Recorded journey distance in miles |
+| `pickup_census_tract` | float | Census tract of pickup (≈54% missing) |
+| `dropoff_census_tract` | float | Census tract of dropoff (≈56% missing) |
+| `pickup_community_area` | float | Community area of pickup (0.05% missing) |
+| `dropoff_community_area` | float | Community area of dropoff (7.2% missing) |
+| `fare` | float | Metered fare in USD |
+| `tips` | float | Tip amount in USD |
+| `trip_total` | float | Total charge billed to the passenger |
+| `payment_type` | string | Credit card, cash, mobile, etc. |
+| `company` | string | Taxi company name |
+| `pickup_centroid_latitude/longitude` | float | Centroid of the pickup census tract |
+| `dropoff_centroid_latitude/longitude` | float | Centroid of the dropoff census tract |
+
+: Core fields of the Chicago taxi trip dataset. {#tbl-taxi-columns}
+
+Two design choices of the Chicago Data Portal are important for the subsequent analysis. First, both `trip_id`and `taxi_id`are SHA-1 hashes, so no personally identifiable information is present.
+Second, all timestamps are **rounded to the nearest 15-minute interval** as an additional privacy measure. 
+This limits temporal precision to 15-minute bins but does not affect hourly or 4-hourly aggregations.
+Third, spatial data is provided only at the census tract level.
+Since there are roughly 800 census tracts in Chicago, spatial resolution is coarser than GPS coordinates, but the centroid latitide and longitude for each tract are available and permit spatial joins
+
+## Weather Data
+Hourly weather data was collected from Open-Meteo Historical Archive API [@openmeteo] for the same date range as the taxi data (January 2024 - May 2026).
+Because Chicago spans roughly 600 km² and exhibits meaningful microclimatic variation between lakefront, the urban core, and the far northwest, a single weather station would be inadequate representative.
+We therefore determined three representative weather zones by appliying K-menas clustering (k = 3) to all taxi pickup coordinates, placing zone centroids where demand activity is the highest.
+The resulting zone are centred on the downtown core (41.886°N, 87.629°W), the O'Hare area (41.979°N, 87.903°W), and the South Side (41.785°N, 87.750°W).
+
+The following meteorological variables are retained for each zone and hour:
+
+| Variable | Unit | Description |
+|---|---|---|
+| `temperature_2m` | °C | Air temperature at 2 m height |
+| `apparent_temperature` | °C | Feels-like temperature (wind chill / heat index) |
+| `precipitation` | mm | Total precipitation |
+| `rain` | mm | Liquid precipitation |
+| `snowfall` | cm | Snowfall accumulation |
+| `snow_depth` | cm | Snow depth on ground |
+| `windspeed_10m` | km/h | Wind speed at 10 m |
+| `windgusts_10m` | km/h | Wind gust speed at 10 m |
+| `cloud_cover` | % | Fractional cloud cover |
+ 
+: Hourly weather variables fetched from Open-Meteo. {#tbl-weather-vars}
+
+The dataset contains **61,335 observations** (3 zones × ~20,445 hours).
+Temperatures range from −26.8 °C to 36.3 °C, with appraent temperatures as low as −32.9 °C due to wind chill, which is consistent with Chicago's continental climate. Median hourly precipitation is near zero while median cloud cover stands at 83 %, reflecting the city's characteristically overcast conditions.
+
+## Point-of-Interest Data
+Point-of-Interst data was obtained from OpenStreetMap via the òsmx`library [@boeing2017osmx].
+Four OSM tag categories were querified for the city of Chicago: àmenity`, `shop`, `tourism`, and `leisure`. 
+They obtain broad coverage of urban attractors.
+After filtering to point geometries (polygon features were converted to their centroids) and discarding unmapped types, the final dataset contains **9,124 POIs** across seven functional categories (@tbl-poi-categories).
+
+| Category | Count | Examples |
+|---|---|---|
+| Food & Nightlife | 5,640 | Restaurants, bars, cafés, fast food |
+| Education | 1,219 | Schools, universities, libraries |
+| Shopping | 1,084 | Supermarkets, clothing, electronics |
+| Healthcare | 469 | Hospitals, clinics, pharmacies |
+| Entertainment | 348 | Theatres, cinemas, museums |
+| Accommodation | 229 | Hotels, hostels |
+| Transport | 135 | Bus stops, subway entrances, ferry terminals |
+ 
+: POI counts by functional category (OpenStreetMap, Chicago). {#tbl-poi-categories}
+ 
+POIs are static spatial features: they do not vary by time and are not used for demand counting directly. Instead, they are aggregated to the H3 hexagon level (resolution 8) as per-category counts and joined into the model feature matrix as proxies for the attractiveness of each spatial unit.
+ 
