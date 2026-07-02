@@ -12,7 +12,7 @@ Seven additional temporal features (date, hour, day of week, month, year, week, 
 @tbl-taxi-columns summarizes the most relevant fields.
 
  | Column | Type | Description |
-|---|---|---|
+|:--------------------------------|:----------------|:----------------------------|
 | `trip_id` | string | SHA-1 hash; unique journey identifier |
 | `taxi_id` | string | SHA-1 hash; anonymised vehicle identifier |
 | `trip_start_timestamp` | datetime (UTC−6) | Rounded to the nearest 15 minutes |
@@ -28,8 +28,8 @@ Seven additional temporal features (date, hour, day of week, month, year, week, 
 | `trip_total` | float | Total charge billed to the passenger |
 | `payment_type` | string | Credit card, cash, mobile, etc. |
 | `company` | string | Taxi company name |
-| `pickup_centroid_latitude/longitude` | float | Centroid of the pickup census tract |
-| `dropoff_centroid_latitude/longitude` | float | Centroid of the dropoff census tract |
+| `pickup_centroid_lat/lon` | float | Centroid of the pickup census tract |
+| `dropoff_centroid_lat/lon` | float | Centroid of the dropoff census tract |
 
 : Core fields of the Chicago taxi trip dataset. {#tbl-taxi-columns}
 
@@ -65,8 +65,8 @@ The dataset contains **61,335 observations** (3 zones × ~20,445 hours).
 Temperatures range from −26.8 °C to 36.3 °C, with appraent temperatures as low as −32.9 °C due to wind chill, which is consistent with Chicago's continental climate. Median hourly precipitation is near zero while median cloud cover stands at 83 %, reflecting the city's characteristically overcast conditions.
 
 ## Point-of-Interest Data
-Point-of-Interst data was obtained from OpenStreetMap via the òsmx`library [@boeing2017osmx].
-Four OSM tag categories were querified for the city of Chicago: àmenity`, `shop`, `tourism`, and `leisure`. 
+Point-of-Interest data was obtained from OpenStreetMap via the `osmnx` library [@boeing2017osmnx].
+Four OSM tag categories were queried for the city of Chicago: `amenity`, `shop`, `tourism`, and `leisure`.
 They obtain broad coverage of urban attractors.
 After filtering to point geometries (polygon features were converted to their centroids) and discarding unmapped types, the final dataset contains **9,124 POIs** across seven functional categories (@tbl-poi-categories).
 

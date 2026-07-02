@@ -1,1 +1,154 @@
 # Data Preparation
+
+## Taxi Data Cleaning
+
+Raw data from a public portal always requires careful validation before analysis. 
+Rather than applying a fixed set of rules upfront, we worked through the taxi dataset step by step. 
+This includes surfacing quality issues, diagnosing their root cause, and deciding on a justified treatment for each. 
+The resulting cleaning process removes just over 10 % of raw records while retaining 89.99 % of trips for analysis.
+
+### Missing values
+
+Missing values affect different fileds to very differenct degrees, and the right treatment depends on the cause.
+
+**Timestamps.** A small number of trips (fewer than 0.01 %) have missing start or end times. 
+Inspection reveals that all affected records fall during the daylight-saving transition in autumn, when clocks are set back and a one-hour window occurs twice, making it impossible to determine which occurrence a given timestamp belongs to. 
+These ambiguous records are removed.
+ 
+**Community area of drop-off.** While the pickup neighbourhood is almost fully populated, the drop-off neighbourhood is missing for approximately 7.2 % of trips. 
+The cause is that these drop-offs occur outside Chicago's official city boundary, suburban locations that do not belong to any of the 77 community areas. 
+Since the geographic coordinates of the drop-off location are always recorded, we recover the community area for all trips that did end within the city by spatially matching each coordinate to the corresponding neighbourhood polygon. 
+Trips with genuinely suburban drop-offs are retained but left without a community area assignment.
+ 
+**Trip duration.** For a small share of records, journey duration is not reported but can be derived exactly from the difference between the start and end timestamps. 
+This imputation is applied automatically.
+ 
+**Trip distance.** A similarly small share of records is missing the distance field. 
+These are estimated using the straight-line (great-circle) distance between the pickup and drop-off locations. 
+The estimate systematically understates the true road distance but provides a usable approximation for this small fraction of records.
+ 
+**Vehicle identifier.** Eight records with missing vehicle IDs cannot be attributed to any specific taxi and are removed, as they are unusable for fleet-level analysis.
+ 
+### Consistency Checks
+ 
+Beyond missing values, we identify records that are present in the data but do not represent real journeys.
+ 
+**Ghost trips.** A trip that lasted zero seconds, started and ended at the same time, and began and ended at the same location is indistinguishable from a meter being accidentally activated and immediately switched off. 
+The dataset contains **153,078 such ghost trips** (approximately 1 % of all records), which are removed. 
+The criterion is strict, all four conditions must hold simultaneously, so genuine very-short trips that covered any distance are preserved.
+ 
+**Zero-distance trips.** A further **1,014,515 trips** (6.8 %) record zero distance travelled despite having a positive duration. 
+The duration distribution for these records has a median of just 46 seconds, with a quarter of records lasting under 6 seconds. 
+These are overwhelmingly meter cancellations or GPS failures rather than real journeys. Any trip with zero recorded distance is excluded.
+ 
+**Timestamp consistency.** We verify that no trip's recorded end time precedes its start time. No such inversions are found.
+ 
+**Duplicate records.** Each trip's unique identifier is confirmed to appear exactly once in the dataset — no double-counting is present.
+ 
+### Billing Discrepancy
+ 
+A cross-check between the total charged to the passenger and the sum of its stated components (fare, tips, tolls, extras) reveals a discrepancy in 47.9 % of rows. 
+Before drawing conclusions, we investigate the pattern carefully. 
+The gap is always positive (the billed total exceeds the sum of components, never the reverse), is almost invariably exactly \$0.50, and clusters strongly in credit card and mobile payment transactions. 
+This pattern is consistent with a **credit card processing surcharge** that is added to the passenger's total bill but is not itemised in the data. 
+No correction is applied, the total charge column is left as-is and used as the authoritative revenue figure.
+ 
+### Outlier Removal
+ 
+After excluding records that do not represent real journeys, we address physically implausible values. 
+Two derived metrics are central to this step: average speed (distance divided by duration) and fare per mile. 
+@tbl-outlier-rules lists the thresholds applied and the number of records removed by each.
+ 
+| Criterion | Records removed | Share of dataset |
+|---|---|---|
+| Non-positive fare | 5,243 | 0.04 % |
+| Distance exceeding 100 miles | 960 | 0.01 % |
+| Duration exceeding 3 hours | 11,629 | 0.08 % |
+| Average speed above 70 mph | 6,663 | 0.05 % |
+| Average speed below 2 mph | 155,478 | 1.13 % |
+| Fare below \$2 per mile | 28,537 | 0.21 % |
+| Fare above \$100 per mile | small | < 0.01 % |
+ 
+: Outlier removal criteria applied to the taxi trip dataset. {#tbl-outlier-rules}
+ 
+As a validation step, we confirm that the geographic distribution of demand is virtually unchanged by these removals: the correlation between per-neighbourhood pickup counts before and after outlier removal is 1.0000, meaning the spatial demand signal is fully preserved.
+ 
+### Two Cleaning Levels
+ 
+Not every downstream task requires the same level of cleaning. 
+For **demand forecasting** (counting how many passengers hailed a taxi in a given area during a given time window) a trip with an unusual speed or fare still counts as a real demand event. 
+For **trip-level analyses** such as duration or fare modelling, such records would distort the results. 
+We therefore maintain two versions of the cleaned dataset:
+ 
+| Level | What is removed | Rows retained |
+|---|---|---|
+| Demand (minimal) | Ghost trips, zero-distance trips, missing vehicle ID | 13,782,164 (91.97 %) |
+| Trip (full) | All of the above, plus outliers by speed and fare | 13,485,728 (89.99 %) |
+ 
+: Rows retained under each cleaning level. {#tbl-cleaning-ledger}
+ 
+All demand forecasting in Sections 4 and 5 uses the minimal cleaning level; the profitability analysis uses the full cleaning level.
+ 
+## Weather Data Preparation
+ 
+**Zone assignment.** The three weather zones described in Section 2 were identified by grouping all taxi pickup locations into three geographic clusters using standard cluster analysis (K-means with k = 3).
+ The optimal number of clusters was selected by inspecting both the reduction in within-cluster variance (elbow method) and the quality of cluster separation (silhouette score), both of which pointed to k = 3.
+ 
+**Weather condition categories.** The raw data includes a numeric condition code (0–99) from the World Meteorological Organisation. 
+Treating these codes as numbers would imply a false ordering (a thunderstorm code of 95 is not "95× worse" than a clear-sky code of 1). 
+Mapping to descriptive categories would be the correct approach; however, when we inspect the actual codes present in the dataset, only three conditions appear: clear, rain, and snow. 
+Since rainfall and snowfall are already captured by separate numeric columns, the categorical condition code provides no additional information and is dropped.
+ 
+**Clock-change gaps.** Three one-hour gaps appear in each zone's hourly time series, always on spring-forward days (2024-03-10 and 2025-03-09). 
+When clocks jump from 01:00 to 03:00, the 02:00 hour physically does not exist, so the absence of a reading at that hour is expected and correct. 
+No imputation is needed.
+ 
+## Point-of-Interest Data Preparation
+ 
+The raw OpenStreetMap query returns POIs in various geographic formats (points, polygons, lines). 
+All non-point features are converted to their geographic centre so that every POI is represented as a single coordinate. 
+POIs are then mapped to one of seven functional categories using a standardised lookup table; types that do not fit any category are discarded. 
+The final 9,124 POIs are assigned to the hexagonal spatial units used in the demand model by placing each POI in the hexagon that contains its coordinate.
+ 
+## Feature Engineering
+ 
+The demand forecasting models do not operate on individual trips. 
+Instead, trips are aggregated into a structured grid: one row per *(hexagon, time bucket)* combination, where the target variable is the number of pickups recorded in that cell. 
+Cells with no pickups in a given period are included explicitly as zero-demand observations rather than omitted, ensuring the model learns from quiet periods as well as busy ones.
+ 
+### Spatial and Temporal Granularity
+ 
+The choice of spatial unit and time-bucket width governs a fundamental trade-off: finer granularity captures local variation more precisely, but it also means more grid cells contain zero or near-zero demand, which is harder to forecast accurately. 
+@tbl-sparsity illustrates this across a range of combinations.
+ 
+| Spatial unit | Time bucket | Grid cells | Zero-demand share |
+|---|---|---|---|
+| H3 resolution 5 (large hexagons) | 1 hour | 163,392 | 5.8 % |
+| H3 resolution 6 | 1 hour | 531,024 | 26.8 % |
+| H3 resolution 6 | 3 hours | 177,008 | 14.8 % |
+| H3 resolution 7 | 3 hours | — | 52.0 % |
+ 
+: Proportion of zero-demand grid cells across spatial and temporal granularities (selected combinations). {#tbl-sparsity}
+ 
+**H3 resolution 6 with 3-hour buckets** was selected as the primary modelling unit. 
+At this granularity the demand grid contains 177,008 cells (27 hexagons × 6,809 time buckets) with a manageable 14.8 % zero-demand share. 
+Moving to the finer resolution 7 pushes zero-demand above 50 %, making the forecasting task substantially harder without a commensurate gain in operational precision.
+ 
+### Features Used in the Forecasting Models
+ 
+Each grid cell is described by the following groups of features, all of which are knowable before the time bucket begins:
+ 
+**Time-of-day and calendar context.** Hour of day, day of week, month, whether the day is a weekend, and whether it is a US public holiday. 
+These capture the repeating daily and weekly demand rhythms identified in the descriptive analysis.
+ 
+**Cyclic time encoding.** Calendar variables are inherently circular: 23:00 is close to 00:00, and December is close to January. 
+Representing them as plain integers would imply a false discontinuity. 
+Each variable is therefore encoded as a sine-cosine pair that preserves the circular relationship, allowing the model to learn, for example, that demand at midnight and demand at 23:00 are similar.
+ 
+**Weather conditions.** The nine weather variables (temperature, apparent temperature, precipitation, rain, snowfall, snow depth, wind speed, wind gusts, cloud cover) for the nearest weather zone during the time bucket. 
+Weather conditions are known from forecasts before the bucket begins.
+ 
+**Spatial identity.** Each hexagon is represented by a unique binary indicator variable, allowing the model to learn a cell-specific baseline level of demand without imposing any assumption about how demand relates across neighbouring cells.
+ 
+Combining all feature groups results in a model input of 50 variables per grid cell.
+ 

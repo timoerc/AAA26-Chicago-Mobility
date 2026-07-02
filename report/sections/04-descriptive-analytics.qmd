@@ -4,10 +4,20 @@
 
 
 ## Temporal and Trip Patterns
+ Before examining spatial structure, it is useful to characterize how demand is distributed across time and what individual trips look like,
+ Taxi demand in Chicago is far from uniformely distributed across the day or week: it follows predictable rhythms tieds to work schedules, social activity, and weather.
+ Understanding these rhythms is a prerequisite for fleet positioning and driver scheduling.
 
+ On weekdays, demand follows a clear bimodal pattern: a morning peak around 08:00 driven by commuter traffic and a stronger, broader evening peak between 16:00 and 19:00. 
+ Overnight demand (00:00-06:00) is uniformly low across all days of the week, making this window a natural candidate for vehicle charging or maintanence.
+ Weekends exhibit a fundamentally different profile: the morning commuter spike is absent, demand builds gradually through the afternoon and peaks in the early evening, reflecting leisure rather than work-driven travel.
+ Midweek (Tuesday to Thursday) consistently records the highest absolute trip volumes.
 
 
 ## Spatial Analytics
+
+The spatial analysis characterizes where demand originates and how it is distributed acroos Chicago's geography.
+We work from coarse neighbourhood-level aggregations down to fine-grained hexagonal cells, and complement static demand maps with flow analysis and profitability metrics.
 
 ### Spatial Discretization: H3 Hexagonal Grid
 
