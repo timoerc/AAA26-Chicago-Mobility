@@ -13,7 +13,7 @@ Missing values affect different fileds to very differenct degrees, and the right
 
 **Timestamps.** A small number of trips (fewer than 0.01 %) have missing start or end times. 
 Inspection reveals that all affected records fall during the daylight-saving transition in autumn, when clocks are set back and a one-hour window occurs twice, making it impossible to determine which occurrence a given timestamp belongs to. 
-These ambiguous records are removed.
+Consequently, these ambiguous records are removed.
  
 **Community area of drop-off.** While the pickup neighbourhood is almost fully populated, the drop-off neighbourhood is missing for approximately 7.2 % of trips. 
 The cause is that these drop-offs occur outside Chicago's official city boundary, suburban locations that do not belong to any of the 77 community areas. 
@@ -43,7 +43,7 @@ These are overwhelmingly meter cancellations or GPS failures rather than real jo
  
 **Timestamp consistency.** We verify that no trip's recorded end time precedes its start time. No such inversions are found.
  
-**Duplicate records.** Each trip's unique identifier is confirmed to appear exactly once in the dataset — no double-counting is present.
+**Duplicate records.** Each trip's unique identifier is confirmed to appear exactly once in the dataset; no double-counting is present.
  
 ### Billing Discrepancy
  
@@ -82,8 +82,8 @@ We therefore maintain two versions of the cleaned dataset:
  
 | Level | What is removed | Rows retained |
 |---|---|---|
-| Demand (minimal) | Ghost trips, zero-distance trips, missing vehicle ID | 13,782,164 (91.97 %) |
-| Trip (full) | All of the above, plus outliers by speed and fare | 13,485,728 (89.99 %) |
+| Demand (minimal) | DST-ambiguous timestamps | 14,984,551 (99.99 %) |
+| Trip (full) | All of the above, plus missing vehicle ID, ghost trips, zero-distance trips, and outliers by speed and fare | 13,485,728 (89.99 %) |
  
 : Rows retained under each cleaning level. {#tbl-cleaning-ledger}
  
