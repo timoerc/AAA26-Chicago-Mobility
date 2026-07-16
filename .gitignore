@@ -62,3 +62,7 @@ Thumbs.db
 # Project specific
 data/
 cache/
+
+
+# Png files
+!data/raw.png
