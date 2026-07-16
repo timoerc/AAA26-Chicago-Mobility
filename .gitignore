@@ -60,9 +60,10 @@ Thumbs.db
 **/*.quarto_ipynb
 
 # Project specific
-data/
+!data/
+data/*
+!data/raw.png
+
 cache/
 
 
-# Png files
-!data/raw.png
