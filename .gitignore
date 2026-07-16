@@ -62,7 +62,13 @@ Thumbs.db
 # Project specific
 !data/
 data/*
-!data/raw.png
+
+# Allow subfolder "raw"
+!data/raw/
+data/raw/*
+
+# Exception
+!data/raw/*.png
 
 cache/
 
