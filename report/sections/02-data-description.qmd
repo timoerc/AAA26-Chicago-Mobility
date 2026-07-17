@@ -1,15 +1,15 @@
 # Data Description
 
-The analysis draws on three data sources: historical taxi trip records from Chicago, hourly weather observations, and point-of-interest data from OpenStreet Map. 
-Together they cover demand, environmental context, and urban structure needed to characterize ride-hailing patterns and build predictive models.
+Three data sources feed the analysis: Chicago taxi trip records, hourly weather, and OpenStreet Map point-of-interest. 
+Together they cover demand, environmental context, and urban structure.
 
 ## Taxi Trip Data
 
-The primary dataset was downloaded from the Chicago Data Portal on 10 May 2026 and contains all taxi trips recorded in Chicago from January 2024 until the start of May 2026.
-In raw form, the dataset comprises **14,985,679 trips** across 21 columns. 
-Seven additional temporal features (date, hour, day of week, month, year, week, and whether a day is a weekened) are derived during loading, bringing the working column count to 28.
+Downloaded from the Chicago Data Portal on 10 May 2026, the dataset holds every taxi trip from January 2024 to early May 2026:
+ **14,985,679 trips** across 21 columns. 
+Seven temporal features (date, hour, day of week, month, year, week, and whether a day is a weekened) are derived at load time, bringing the working total to 28.
 
-@tbl-taxi-columns summarizes the most relevant fields.
+@tbl-taxi-columns lists the key fields.
 
  | Column | Type | Description |
 |:--------------------------------|:----------------|:----------------------------|
@@ -33,19 +33,19 @@ Seven additional temporal features (date, hour, day of week, month, year, week, 
 
 : Core fields of the Chicago taxi trip dataset. {#tbl-taxi-columns}
 
-Two design choices of the Chicago Data Portal are important for the subsequent analysis. First, both `trip_id`and `taxi_id`are SHA-1 hashes, so no personally identifiable information is present.
-Second, all timestamps are **rounded to the nearest 15-minute interval** as an additional privacy measure. 
-This limits temporal precision to 15-minute bins but does not affect hourly or 4-hourly aggregations.
-Third, spatial data is provided only at the census tract level.
-Since there are roughly 800 census tracts in Chicago, spatial resolution is coarser than GPS coordinates, but the centroid latitide and longitude for each tract are available and permit spatial joins.
+Three portal design choices matter downstream. 
+Both IDs are SHA-1 hashes, so there's no personally identifiable information.
+All timestamps are rounded to the nearest 15-minute interval for privacy. 
+This caps temporal precision at 15-minute bins but doesn't affect hourly or 4-hourly aggregations.
+And location is given only at the census tract level:
+with roughly 800 tracts in Chicago  the spatial grain is coarser than GPS, but each tract's centroid lat/lon supports spatial joins.
 
 ## Weather Data
-Hourly weather data was collected from Open-Meteo Historical Archive API [@openmeteo] for the same date range as the taxi data (January 2024 - May 2026).
-Because Chicago spans roughly 600 km² and exhibits meaningful microclimatic variation between lakefront, the urban core, and the far northwest, a single weather station would be inadequate representative.
-We therefore determined three representative weather zones by appliying K-means clustering (k = 3) to all taxi pickup coordinates, placing zone centroids where demand activity is the highest.
-The resulting zones are centred on the downtown core (41.886°N, 87.629°W), the O'Hare area (41.979°N, 87.903°W), and the South Side (41.785°N, 87.750°W).
 
-The following meteorological variables are retained for each zone and hour:
+Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range (January 2024 - May 2026).
+Chicago spans about 600 km² with real microclimatic variation between lakefront, the urban core, and the far northwest, so one weather station won't represent it.
+We defined three representative weather zones by K-means clustering (k = 3) on all pickup coordinates, placing zone centroids where demand activity is densest:
+the downtown core (41.886°N, 87.629°W), O'Hare (41.979°N, 87.903°W), and the South Side (41.785°N, 87.750°W).
 
 | Variable | Unit | Description |
 |---|---|---|
@@ -61,14 +61,15 @@ The following meteorological variables are retained for each zone and hour:
  
 : Hourly weather variables fetched from Open-Meteo. {#tbl-weather-vars}
 
-The dataset contains **61,335 observations** (~20,445 hours for each zone).
-Temperatures range from −26.8 °C to 36.3 °C, with appraent temperatures as low as −32.9 °C due to wind chill, which is consistent with Chicago's continental climate. Median hourly precipitation is near zero while median cloud cover stands at 83 %, reflecting the city's characteristically overcast conditions.
+The dataset holds **61,335 observations** (~20,445 hours for each zone).
+Temperatures run from −26.8 °C to 36.3 °C, with appraent temperatures as low as −32.9 °C from wind chill, which is consistent with Chicago's continental climate. 
+Median hourly precipitation is near zero while median cloud cover is 83 %, matching the city's overcast reputation.
 
 ## Point-of-Interest Data
-Point-of-Interest data was obtained from OpenStreetMap via the `osmnx` library [@boeing2017osmnx].
-Four OSM tag categories were queried for the city of Chicago: `amenity`, `shop`, `tourism`, and `leisure`.
-The raw OSM tag values (e.g. restaurant, bus_stop, hospital) are too fine-grained and numerous to use directly as demand predictors, since many occur too sparsely to yield stable per-hexagon counts, and their relevance to taxi demand overlaps substantially (e.g. cafe and bar both signal evening/nightlife demand). We therefore mapped the raw tags into seven broader, demand-relevant categories (transport, food/nightlife, healthcare, education, entertainment, accommodation, shopping), grouping tags with similar expected temporal demand patterns. Tags that did not fit a clear demand category were dropped as too niche to be informative. 
-After filtering to point geometries (polygon features were converted to their centroids) and discarding unmapped types, the final dataset contains **9,124 POIs** across seven functional categories (@tbl-poi-categories).
+POI data comes from OpenStreetMap via`osmnx` [@boeing2017osmnx],querying four tag categories for Chicago: `amenity`, `shop`, `tourism`, and `leisure`.
+The raw tags (e.g. restaurant, bus_stop, hospital) are too fine-grained to use directly, since many are too sparse for stable per-hexagon counts, and their demand signals overlaps (e.g. café and bar both mean nightlife). 
+We collapsed them into seven demand-relevant categories, grouping tags with similar expected demand timing and dropping tags too niche to matter. 
+After converting  polygons to centroids and discarding unmapped types, **9,124 POIs** remain (@tbl-poi-categories).
 
 | Category | Count | Examples |
 |---|---|---|
@@ -82,5 +83,5 @@ After filtering to point geometries (polygon features were converted to their ce
  
 : POI counts by functional category (OpenStreetMap, Chicago). {#tbl-poi-categories}
  
-POIs are static spatial features: they do not vary by time and are not used for demand counting directly. Instead, they are aggregated to the H3 hexagon level (resolution 8) as per-category counts and joined into the model feature matrix as proxies for the attractiveness of each spatial unit.
- 
+POIs are static: they don't vary over time and aren't counted as demand. 
+They are aggregated to H3 resolution 8 as per-category counts and joined into the feature matrix as a proxy for how much each cell attracts trips.
