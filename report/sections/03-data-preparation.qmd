@@ -77,8 +77,8 @@ Demand forecasting (Section 4-5) uses the minimal cleaning level; the profitabil
 **Zone assignment.** The three weather zones from Section 2 come from K-means(k = 3) on all pickup locations.
 Both the elbow method silhouette score pointed to k = 3.
  
-** Condition codes.** The raw data carriers a WMO condition code (0.99).
-Treating it as a number implies a false ordering (code 95 isn't "95x worse" than code 1), and only three conditions actually appear: clear, rain, snow.
+** Condition codes.** The raw data carriers a WMO condition code (0--99).
+Treating it as a number implies a false ordering (code 95 isn't "95$\times$ worse" than code 1), and only three conditions actually appear: clear, rain, snow.
 Since rain and snow already have their own numeric columns, the code add nothing and is dropped.
  
 **Clock-change gaps.** Each zone shows one hour gaps on spring-forward day (2024-03-10, 2025-03-09).
@@ -107,11 +107,11 @@ Grain sets a  trade-off: finer units capture local variation but leave more cell
 | H3 resolution 5 (large hexagons) | 1 hour | 163,392 | 5.8 % |
 | H3 resolution 6 | 1 hour | 531,024 | 26.8 % |
 | H3 resolution 6 | 3 hours | 177,008 | 14.8 % |
-| H3 resolution 7 | 3 hours | — | 52.0 % |
+| H3 resolution 7 | 3 hours | -- | 52.0 % |
  
 : Zero-demand share across spatial and temporal granularities. {#tbl-sparsity}
  
-We chose **H3 resolution 6 with 3-hour buckets**: 177,008 cells (27 hexagons × 6,809 time buckets) at a manageable 14.8 % zero-demand share. 
+We chose **H3 resolution 6 with 3-hour buckets**: 177,008 cells (27 hexagons $\times$ 6,809 time buckets) at a manageable 14.8 % zero-demand share. 
 Resolution 7 pushes zero-demand past 50% without a matching gain in operational precision.
 
 ### Features Used in the Forecasting Models

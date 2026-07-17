@@ -15,12 +15,12 @@ Seven temporal features (date, hour, day of week, month, year, week, and whether
 |:--------------------------------|:----------------|:----------------------------|
 | `trip_id` | string | SHA-1 hash; unique journey identifier |
 | `taxi_id` | string | SHA-1 hash; anonymised vehicle identifier |
-| `trip_start_timestamp` | datetime (UTC−6) | Rounded to the nearest 15 minutes |
-| `trip_end_timestamp` | datetime (UTC−6) | Rounded to the nearest 15 minutes |
+| `trip_start_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
+| `trip_end_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
 | `trip_seconds` | float | Recorded journey duration in seconds |
 | `trip_miles` | float | Recorded journey distance in miles |
-| `pickup_census_tract` | float | Census tract of pickup (≈54% missing) |
-| `dropoff_census_tract` | float | Census tract of dropoff (≈56% missing) |
+| `pickup_census_tract` | float | Census tract of pickup ($\approx 54$% missing) |
+| `dropoff_census_tract` | float | Census tract of dropoff ($\approx 56$% missing) |
 | `pickup_community_area` | float | Community area of pickup (0.05% missing) |
 | `dropoff_community_area` | float | Community area of dropoff (7.2% missing) |
 | `fare` | float | Metered fare in USD |
@@ -41,6 +41,10 @@ And location is given only at the census tract level:
 with roughly 800 tracts in Chicago  the spatial grain is coarser than GPS, but each tract's centroid lat/lon supports spatial joins.
 
 ## Weather Data
+Hourly weather data was collected from Open-Meteo Historical Archive API [@openmeteo] for the same date range as the taxi data (January 2024 - May 2026).
+Because Chicago spans roughly 600 km$^2$ and exhibits meaningful microclimatic variation between lakefront, the urban core, and the far northwest, a single weather station would be inadequate representative.
+We therefore determined three representative weather zones by appliying K-means clustering (k = 3) to all taxi pickup coordinates, placing zone centroids where demand activity is the highest.
+The resulting zones are centred on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W).
 
 Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range (January 2024 - May 2026).
 Chicago spans about 600 km² with real microclimatic variation between lakefront, the urban core, and the far northwest, so one weather station won't represent it.
@@ -49,8 +53,8 @@ the downtown core (41.886°N, 87.629°W), O'Hare (41.979°N, 87.903°W), and the
 
 | Variable | Unit | Description |
 |---|---|---|
-| `temperature_2m` | °C | Air temperature at 2 m height |
-| `apparent_temperature` | °C | Feels-like temperature (wind chill / heat index) |
+| `temperature_2m` | $^\circ$C | Air temperature at 2 m height |
+| `apparent_temperature` | $^\circ$C | Feels-like temperature (wind chill / heat index) |
 | `precipitation` | mm | Total precipitation |
 | `rain` | mm | Liquid precipitation |
 | `snowfall` | cm | Snowfall accumulation |
@@ -61,9 +65,8 @@ the downtown core (41.886°N, 87.629°W), O'Hare (41.979°N, 87.903°W), and the
  
 : Hourly weather variables fetched from Open-Meteo. {#tbl-weather-vars}
 
-The dataset holds **61,335 observations** (~20,445 hours for each zone).
-Temperatures run from −26.8 °C to 36.3 °C, with appraent temperatures as low as −32.9 °C from wind chill, which is consistent with Chicago's continental climate. 
-Median hourly precipitation is near zero while median cloud cover is 83 %, matching the city's overcast reputation.
+The dataset contains **61,335 observations** (~20,445 hours for each zone).
+Temperatures range from $-26.8$ $^\circ$C to 36.3 $^\circ$C, with appraent temperatures as low as $-32.9$ $^\circ$C due to wind chill, which is consistent with Chicago's continental climate. Median hourly precipitation is near zero while median cloud cover stands at 83 %, reflecting the city's characteristically overcast conditions.
 
 ## Point-of-Interest Data
 POI data comes from OpenStreetMap via`osmnx` [@boeing2017osmnx],querying four tag categories for Chicago: `amenity`, `shop`, `tourism`, and `leisure`.
