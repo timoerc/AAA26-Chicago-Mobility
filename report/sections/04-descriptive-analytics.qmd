@@ -36,10 +36,10 @@ All distributions are clipped at the 99th percentile to prevent outliers, such a
 
 ![Distribution of trip duration, distance, fare, tips, total cost, and inter-trip idle time across the full dataset.](../data/raw/trip_metric_distributions.png){width=90% fig-align="center"}
 
-Several patterns stand out. Trip durations are right-skewed with a median around 600–700 seconds (~10 minutes), indicating that the majority of rides are relatively short urban hops. 
+Several patterns stand out. Trip durations are right-skewed with a median around 600--700 seconds (~10 minutes), indicating that the majority of rides are relatively short urban hops. 
 Trip distances mirror this pattern, with most trips under 5 miles. Fare and total cost distributions confirm the dominance of low-cost short rides, with a long tail driven by airport and cross-city trips. 
 The tip distribution is has some extraordinary high counts at specific tip amounts, which could reflecting the large share of cashless predefined tips. 
-Idle time between consecutive trips per driver is concentrated in the 0–30 minute range, suggesting reasonably efficient utilization, though the mean around 60 minutes indicates periods of deliberate waiting or repositioning.
+Idle time between consecutive trips per driver is concentrated in the 0--30 minute range, suggesting reasonably efficient utilization, though the mean around 60 minutes indicates periods of deliberate waiting or repositioning.
 
 ### Spatial Demand Analysis
 
@@ -65,15 +65,15 @@ To capture this, pickups were aggregated into 4-hour time buckets at H3 resoluti
 ![Pickup demand by 4-hour time bucket at H3 resolution 6, covering the full 24-hour cycle.](../data/raw/demand_4h_buckets.png){width=90% fig-align="center"}
 
 The northeastern lakefront and downtown corridor is the dominant demand hub across all time buckets, confirming its role as a structurally persistent hotspot regardless of the time of day. 
-During the night window (00:00–03:59), overall demand is low but the downtown core retains relative activity, consistent with late-night hospitality and entertainment traffic. 
-The early morning bucket (04:00–07:59) reveals a distinct secondary hotspot around Midway Airport in the southwest, attributable to early departures. 
-The morning and midday buckets (08:00–15:59) see demand spread more broadly across the eastern half of the city, reflecting a mix of commuter, business, and leisure travel. 
-The afternoon and evening windows (12:00–19:59) represent the peak demand period, with the downtown core intensifying sharply while outer neighborhoods remain comparatively quiet. 
+During the night window (00:00--03:59), overall demand is low but the downtown core retains relative activity, consistent with late-night hospitality and entertainment traffic. 
+The early morning bucket (04:00--07:59) reveals a distinct secondary hotspot around Midway Airport in the southwest, attributable to early departures. 
+The morning and midday buckets (08:00--15:59) see demand spread more broadly across the eastern half of the city, reflecting a mix of commuter, business, and leisure travel. 
+The afternoon and evening windows (12:00--19:59) represent the peak demand period, with the downtown core intensifying sharply while outer neighborhoods remain comparatively quiet. 
 From 20:00 onwards, activity tapers off but the lakefront strip retains a persistent hotspot driven by restaurant and nightlife traffic.
 
 ### Temporal Demand Patterns
 
-### Heatmap: Hour of Day × Day of Week
+### Heatmap: Hour of Day $\times$ Day of Week
 
 The following heatmap cross-tabulates total pickups by hour of day and day of week, providing a compact view of how demand is structured across the weekly cycle.
 
@@ -81,13 +81,13 @@ The following heatmap cross-tabulates total pickups by hour of day and day of we
 
 The bulk of trips occur between 07:00 and 19:00 on weekdays, forming a dense demand block from Tuesday to Thursday that represents the highest observed demand in the dataset. 
 Weekends show a distinctly different rhythm: demand starts later in the morning, lacks a pronounced commuter spike, and trails off more gradually in the evening, consistent with leisure rather than work-driven travel. 
-The 00:00–06:00 window is uniformly quiet across all days, making it a natural candidate for driver rest periods or vehicle charging windows in an electric fleet context.
+The 00:00--06:00 window is uniformly quiet across all days, making it a natural candidate for driver rest periods or vehicle charging windows in an electric fleet context.
 
-### Origin–Destination Analysis
+### Origin--Destination Analysis
 
-To understand mobility flows between areas, an origin–destination (OD) matrix was constructed for the top 10 community areas by outgoing trip volume.
+To understand mobility flows between areas, an origin--destination (OD) matrix was constructed for the top 10 community areas by outgoing trip volume.
 
-![Origin–destination matrix for the top 10 community areas by total trip volume.](../data/raw/od_matrix_community.png){width=90% fig-align="center"}
+![Origin--destination matrix for the top 10 community areas by total trip volume.](../data/raw/od_matrix_community.png){width=90% fig-align="center"}
 
 The Near North Side and the Loop dominate both as origins and as destinations by a wide margin, reinforcing their central role in Chicago's taxi network. 
 Despite its geographic isolation in the northwest, O'Hare International Airport generates nearly 500,000 trips directed toward the Near North Side and Loop alone, confirming the airport-to-downtown corridor as one of the most important in the network.

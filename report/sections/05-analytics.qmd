@@ -62,11 +62,11 @@ The best overall configuration (RBF kernel, C = 10, epsilon = 0.1) is selected f
 
 @tbl-svm-results compares the best SVR against the two baselines on the held-out test set of 53,103 grid cells.
  
-| Model | MAE | RMSE | R² |
+| Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
 | Per-cell mean | 26.77 | 113.91 | 0.521 |
 | Climatology | 11.11 | 55.11 | 0.888 |
-| SVR (RBF) | ~15.8 | — | ~0.86 |
+| SVR (RBF) | ~15.8 | -- | ~0.86 |
  
 : SVR test-set performance compared to baselines. {#tbl-svm-results}
  
@@ -80,10 +80,10 @@ The headline error figure conceals important structure in where the model strugg
  
 | Demand level (trips per window) | MAE | Observations |
 |---|---|---|
-| 0–1 | 0.24 | 41,994 |
-| 1–5 | 3.21 | 2,462 |
-| 5–20 | 6.86 | 2,733 |
-| 20–100 | 22.41 | 3,173 |
+| 0--1 | 0.24 | 41,994 |
+| 1--5 | 3.21 | 2,462 |
+| 5--20 | 6.86 | 2,733 |
+| 20--100 | 22.41 | 3,173 |
 | 100+ | 179.32 | 2,741 |
  
 : SVR test-set error decomposed by demand level. {#tbl-svm-error}
@@ -97,7 +97,7 @@ This pattern reflects a known limitation of log-transformed regression: extreme 
 The assignment requires assessing how model performance varies across different granularity choices. 
 We test the already-tuned model configuration across a range of hexagon sizes and time-window widths.
  
-| Hexagon size | Time window | MAE | R² |
+| Hexagon size | Time window | MAE | R$^2$ |
 |---|---|---|---|
 | Large (resolution 5, 8 cells) | 1 hour | 15.22 | 0.720 |
 | Large (resolution 5, 8 cells) | 3 hours | 36.98 | 0.841 |
@@ -106,7 +106,7 @@ We test the already-tuned model configuration across a range of hexagon sizes an
  
 : SVR performance across spatial and temporal resolutions. {#tbl-svm-resolution}
  
-As the spatial unit becomes finer, the absolute prediction error (MAE) decreases because individual hexagons contain fewer trips on average, but the model's ability to explain variation (R²) also decreases as the demand signal becomes noisier in smaller cells. 
+As the spatial unit becomes finer, the absolute prediction error (MAE) decreases because individual hexagons contain fewer trips on average, but the model's ability to explain variation (R$^2$) also decreases as the demand signal becomes noisier in smaller cells. 
 Hexagon size resolution 6 with 3-hour windows represents a practical balance. 
 Using census tracts instead of hexagons as the spatial unit would introduce approximately 800 spatial units versus 27 at resolution 6, dramatically increasing sparsity and likely degrading performance further.
  
@@ -166,16 +166,16 @@ The best configuration (two hidden layers of 128 and 64 neurons, ReLU activation
 ![Training and validation loss curves for the final neural network model.](../data/raw/nn_training_curve.png){width=80% fig-align="center"}
 -->
  
-| Model | MAE | RMSE | R² |
+| Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
 | Climatology | 14.62 | 72.63 | 0.899 |
 | Neural network | **12.31** | **65.25** | **0.919** |
  
 : Neural network test-set performance compared to the climatology baseline. {#tbl-nn-results}
  
-Unlike the SVR, the neural network **outperforms the climatology baseline** on all metrics: MAE 12.31 versus 14.62, and R² of 0.919 versus 0.899.
+Unlike the SVR, the neural network **outperforms the climatology baseline** on all metrics: MAE 12.31 versus 14.62, and R$^2$ of 0.919 versus 0.899.
 This confirms that the neural network captures demand patterns that go beyond the repeating weekly seasonal cycle, in particular, non-linear interactions between weather conditions, time of day, and location that a fixed seasonal average cannot represent.
-The model's residual tendency to slightly under-predict (−7.11 trips on average) indicates that extreme demand events in the busiest downtown cells are still not fully captured. 
+The model's residual tendency to slightly under-predict ($-7.11$ trips on average) indicates that extreme demand events in the busiest downtown cells are still not fully captured. 
 These spikes are driven by factors not present in the feature set (unplanned events, sports fixtures, concerts) and would require dedicated event-calendar data to forecast reliably.
 
 
@@ -208,7 +208,7 @@ The meaningful comparison is therefore each model's performance relative to its 
 
 | Model | Setting | Climatology MAE | Model MAE | Improvement |
 |---|---|---|---|---|
-| SVR (RBF) | H3 res. 6, 3 h windows | 11.11 | ~15.8 | **Worse** (−42 %) |
+| SVR (RBF) | H3 res. 6, 3 h windows | 11.11 | ~15.8 | **Worse** ($-42$ %) |
 | Neural network | H3 res. 6, 4 h windows | 14.62 | 12.31 | **Better** (+16 %) |
  
 : Each model's performance relative to the climatology baseline under its own granularity setting. {#tbl-model-comparison}

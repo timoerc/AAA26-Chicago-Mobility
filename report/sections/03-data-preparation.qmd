@@ -94,8 +94,8 @@ All demand forecasting in Sections 4 and 5 uses the minimal cleaning level; the 
 **Zone assignment.** The three weather zones described in Section 2 were identified by grouping all taxi pickup locations into three geographic clusters using standard cluster analysis (K-means with k = 3).
  The optimal number of clusters was selected by inspecting both the reduction in within-cluster variance (elbow method) and the quality of cluster separation (silhouette score), both of which pointed to k = 3.
  
-**Weather condition categories.** The raw data includes a numeric condition code (0–99) from the World Meteorological Organisation. 
-Treating these codes as numbers would imply a false ordering (a thunderstorm code of 95 is not "95× worse" than a clear-sky code of 1). 
+**Weather condition categories.** The raw data includes a numeric condition code (0--99) from the World Meteorological Organisation. 
+Treating these codes as numbers would imply a false ordering (a thunderstorm code of 95 is not "95$\times$ worse" than a clear-sky code of 1). 
 Mapping to descriptive categories would be the correct approach; however, when we inspect the actual codes present in the dataset, only three conditions appear: clear, rain, and snow. 
 Since rainfall and snowfall are already captured by separate numeric columns, the categorical condition code provides no additional information and is dropped.
  
@@ -126,12 +126,12 @@ The choice of spatial unit and time-bucket width governs a fundamental trade-off
 | H3 resolution 5 (large hexagons) | 1 hour | 163,392 | 5.8 % |
 | H3 resolution 6 | 1 hour | 531,024 | 26.8 % |
 | H3 resolution 6 | 3 hours | 177,008 | 14.8 % |
-| H3 resolution 7 | 3 hours | — | 52.0 % |
+| H3 resolution 7 | 3 hours | -- | 52.0 % |
  
 : Proportion of zero-demand grid cells across spatial and temporal granularities (selected combinations). {#tbl-sparsity}
  
 **H3 resolution 6 with 3-hour buckets** was selected as the primary modelling unit. 
-At this granularity the demand grid contains 177,008 cells (27 hexagons × 6,809 time buckets) with a manageable 14.8 % zero-demand share. 
+At this granularity the demand grid contains 177,008 cells (27 hexagons $\times$ 6,809 time buckets) with a manageable 14.8 % zero-demand share. 
 Moving to the finer resolution 7 pushes zero-demand above 50 %, making the forecasting task substantially harder without a commensurate gain in operational precision.
  
 ### Features Used in the Forecasting Models
