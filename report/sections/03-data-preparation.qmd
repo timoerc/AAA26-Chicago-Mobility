@@ -123,16 +123,16 @@ The choice of spatial unit and time-bucket width governs a fundamental trade-off
  
 | Spatial unit | Time bucket | Grid cells | Zero-demand share |
 |---|---|---|---|
-| H3 resolution 5 (large hexagons) | 1 hour | 163,392 | 5.8 % |
-| H3 resolution 6 | 1 hour | 531,024 | 26.8 % |
-| H3 resolution 6 | 3 hours | 177,008 | 14.8 % |
-| H3 resolution 7 | 3 hours | -- | 52.0 % |
+| H3 resolution 5 (large hexagons) | 1 hour | 163,400 | 5.8 % |
+| H3 resolution 6 | 1 hour | 551,475 | 26.8 % |
+| H3 resolution 6 | 4 hours | 137,889 | 12.6 % |
+| H3 resolution 7 | 4 hours | 653,696 | 49.2 % |
  
 : Proportion of zero-demand grid cells across spatial and temporal granularities (selected combinations). {#tbl-sparsity}
  
-**H3 resolution 6 with 3-hour buckets** was selected as the primary modelling unit. 
-At this granularity the demand grid contains 177,008 cells (27 hexagons $\times$ 6,809 time buckets) with a manageable 14.8 % zero-demand share. 
-Moving to the finer resolution 7 pushes zero-demand above 50 %, making the forecasting task substantially harder without a commensurate gain in operational precision.
+**H3 resolution 6 with 4-hour buckets** was selected as the primary modelling unit.
+At this granularity the demand grid contains 137,889 cells (27 hexagons $\times$ 5,107 time buckets) with a manageable 12.6 % zero-demand share.
+Moving to the finer resolution 7 pushes zero-demand close to 50 %, making the forecasting task substantially harder without a commensurate gain in operational precision.
  
 ### Features Used in the Forecasting Models
  
