@@ -43,7 +43,7 @@ def prepare_modelling(
         calendar + cyclic encodings, and per-bucket weather columns appended.
     """
     # 1. Load the preprocessed trip table.
-    df = load_taxi_data(preprocessed=True, mode='trip')
+    df = load_taxi_data(preprocessed=True, mode='demand')
 
     # 2. Assign each trip to its pickup H3 cell if not already present.
     if f"pickup_h3_r{resolution}" not in df.columns:
