@@ -162,9 +162,7 @@ The final model uses ReLU throughput.
 
 The best configuration (two hidden layers of 128 and 64 neurons, ReLU activation, no dropout, learning rate 0.1, SGD optimiser) is retrained on the full training and validation data and evaluated once on the held-out test set.
  
-<!-- TODO: nn_training_curve.png fehlt in data/raw/ — Plot aus notebooks/03c_nn.ipynb speichern (savefig), dann naechste Zeile wieder einkommentieren:
 ![Training and validation loss curves for the final neural network model.](../data/raw/nn_training_curve.png){width=80% fig-align="center"}
--->
  
 | Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
