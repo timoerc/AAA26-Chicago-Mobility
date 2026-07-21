@@ -104,15 +104,16 @@ Grain sets a  trade-off: finer units capture local variation but leave more cell
  
 | Spatial unit | Time bucket | Grid cells | Zero-demand share |
 |---|---|---|---|
-| H3 resolution 5 (large hexagons) | 1 hour | 163,392 | 5.8 % |
-| H3 resolution 6 | 1 hour | 531,024 | 26.8 % |
-| H3 resolution 6 | 3 hours | 177,008 | 14.8 % |
-| H3 resolution 7 | 3 hours | -- | 52.0 % |
- 
+| H3 resolution 5 (large hexagons) | 1 hour | 163,400 | 5.8 % |
+| H3 resolution 6 | 1 hour | 551,475 | 26.8 % |
+| H3 resolution 6 | 4 hours | 137,889 | 12.6 % |
+| H3 resolution 7 | 4 hours | 653,696 | 49.2 % |
+
 : Zero-demand share across spatial and temporal granularities. {#tbl-sparsity}
- 
-We chose **H3 resolution 6 with 3-hour buckets**: 177,008 cells (27 hexagons $\times$ 6,809 time buckets) at a manageable 14.8 % zero-demand share. 
-Resolution 7 pushes zero-demand past 50% without a matching gain in operational precision.
+
+We chose **H3 resolution 6 with 4-hour buckets** as our main resolution for now based on the relatively low zero-demand share: 137,889 cells (27 hexagons $\times$ 5,107 time buckets) at a manageable 12.6 % zero-demand share.
+Resolution 7 pushes zero-demand close to 50% without a matching gain in operational precision.
+Throughout the report, we show results at this spatio-temporal resolution, but we also explore the effect of coarser and finer resolutions in Section 4.3.
 
 ### Features Used in the Forecasting Models
  

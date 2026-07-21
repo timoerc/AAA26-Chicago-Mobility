@@ -4,7 +4,7 @@
 
 ### Problem Formulation and Validation Strategy
 
-The forecassting task is to predict **taxi demand per spatial unit and time windows**, that is the number of pickups in a given hexagon during a given 3-hour period, using only information that is available before the window begins: the time of day, day of week, weather forecast, and location.
+The forecassting task is to predict **taxi demand per spatial unit and time windows**, that is the number of pickups in a given hexagon during a given 4-hour period, using only information that is available before the window begins: the time of day, day of week, weather forecast, and location.
 The framing is cross-sectional rather than sequential.
 The goal is to answer questions such as "what demand can we expect on  a rainy Sunday from 10:00-13:00 in the outskirts of the city?". 
 Not to project forward from the previous hour's actual counts, which could not be available in a planning context.
@@ -19,11 +19,11 @@ Random shuffling is appropriate here because the models do not use lagged demand
 
 **Baselines.** Two naive benchmarks are evaluated alongside each model, providing context for the model results:
 
-- *Per-cell mean*: for each hexagon and time window, the prediction is simply the historical average demand observed during training. 
-MAE = 26.77 trips.
+- *Per-cell mean*: for each hexagon and time window, the prediction is simply the historical average demand observed during training.
+MAE = 67.18 trips.
 - *Climatology*: for each combination of hexagon, hour of day, and weekday-vs-weekend, the prediction is the historical average.
 This baseline captures the dominant daily and weekly seasonal rhythm.
-MAE = 11.11 trips.
+MAE = 25.63 trips.
 
 Any model that fails to beat the per-cell mean offers no practical value. Beating climatology is the meaningful hurdle: that baseline already exploits the predictable weekly cycle that constitutes the bulk of foreseeable demand variation.
 
@@ -41,7 +41,7 @@ Three further settings are tuned simultaneously:
 - **Epsilon** (tolerance band width): predictions within this distance of the true value incur no penalty.
 - **Gamma** (RBF and polynomial only): controls how strongly each training observation influences the model's prediction in its local neighbourhood.
 
-Because the SVR becomes computationally demanding for large training sets, hyperparameter tuning was conducted on a random subsample of 10,000 training observations, with the best configuration then refit on up to 30,000 rows for final evaluation.
+Because the SVR becomes computationally demanding for large training sets, hyperparameter tuning was conducted on a random subsample of 8,000 training observations, with the best configuration then refit on up to 30,000 rows for final evaluation.
 
 **Kernel Comparison results**
 
@@ -49,30 +49,30 @@ Because the SVR becomes computationally demanding for large training sets, hyper
  
 | Kernel type | Best regularisation | Hold-set MAE |
 |---|---|---|
-| Linear | C = 1.0 | 24.14 trips |
-| Polynomial | C = 1.0 | 19.73 trips |
-| RBF | C = 10.0 | **14.92 trips** |
+| Linear | C = 1.0 | 39.58 trips |
+| Polynomial | C = 10.0 | 29.59 trips |
+| RBF | C = 10.0 | **25.51 trips** |
 
 : Best SVR configuration per kernel type, scored on the validation set. {#tbl-svm-kernels}
 
-The progression from linear (MAE 24.14) to RBF (MAE 14.92) illustrates the value of increasing model flexibility: the relationship between weather and calendar features and taxi demand is non-linear, and the RBF kernel's ability to model these curvatures brings a meaningful accuracy improvement.
+The progression from linear (MAE 39.58) to RBF (MAE 25.51) illustrates the value of increasing model flexibility: the relationship between weather and calendar features and taxi demand is non-linear, and the RBF kernel's ability to model these curvatures brings a meaningful accuracy improvement.
 The best overall configuration (RBF kernel, C = 10, epsilon = 0.1) is selected for final evaluation.
 
 **Final Test-Set evaluation**
 
-@tbl-svm-results compares the best SVR against the two baselines on the held-out test set of 53,103 grid cells.
- 
+@tbl-svm-results compares the best SVR against the two baselines on the held-out test set of 41,367 grid cells.
+
 | Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
-| Per-cell mean | 26.77 | 113.91 | 0.521 |
-| Climatology | 11.11 | 55.11 | 0.888 |
-| SVR (RBF) | ~15.8 | -- | ~0.86 |
+| Per-cell mean | 67.18 | 216.97 | 0.633 |
+| Climatology | 25.63 | 93.19 | 0.932 |
+| SVR (RBF) | **24.33** | **88.05** | **0.940** |
  
 : SVR test-set performance compared to baselines. {#tbl-svm-results}
  
-The SVR comfortably outperforms the per-cell mean but **does not beat the climatology baseline**. 
-In other words, simply knowing the average demand for a given hexagon at a given hour on a weekday versus weekend outperforms the SVR on this test set. 
-This outcome is informative rather than unexpected: without access to recent actual demand counts, the model is essentially learning the same seasonal pattern that the climatology already encodes, but less efficiently because it must discover that pattern from general-purpose features rather than from a precomputed schedule.
+The SVR comfortably outperforms the per-cell mean and **marginally edges out the climatology baseline** on MAE, RMSE, and R$^2$, though the margin is thin (a skill score of just $+0.11$ over climatology) and climatology remains better on median error and bias.
+In other words, the SVR only slightly improves on simply knowing the average demand for a given hexagon at a given hour on a weekday versus weekend.
+This outcome is informative rather than unexpected: without access to recent actual demand counts, the model is largely re-learning the same seasonal pattern that the climatology already encodes, and it earns its slim edge mainly by taming the largest demand spikes rather than by being more accurate on a typical cell.
 
 **Where the Error Concentrates**
  
@@ -80,16 +80,16 @@ The headline error figure conceals important structure in where the model strugg
  
 | Demand level (trips per window) | MAE | Observations |
 |---|---|---|
-| 0--1 | 0.24 | 41,994 |
-| 1--5 | 3.21 | 2,462 |
-| 5--20 | 6.86 | 2,733 |
-| 20--100 | 22.41 | 3,173 |
-| 100+ | 179.32 | 2,741 |
+| 0--1 | 0.68 | 7,580 |
+| 1--5 | 1.70 | 7,035 |
+| 5--20 | 3.81 | 10,328 |
+| 20--100 | 11.91 | 8,725 |
+| 100+ | 109.89 | 7,699 |
  
 : SVR test-set error decomposed by demand level. {#tbl-svm-error}
  
-The model is highly accurate on low-demand cells, which make up the vast majority of observations. 
-However, it systematically under-predicts in high-demand cells, precisely the downtown and airport hexagons where accurate forecasting has the greatest operational value. 
+The model is highly accurate on low-demand cells, which make up the majority of observations.
+However, it makes its largest errors in high-demand cells, precisely the downtown and airport hexagons where accurate forecasting has the greatest operational value.
 This pattern reflects a known limitation of log-transformed regression: extreme values are compressed during training, causing the model to underestimate large demand spikes when predictions are returned to the original scale.
  
 **Effect of Spatial and Temporal Resolution**
@@ -99,24 +99,24 @@ We test the already-tuned model configuration across a range of hexagon sizes an
  
 | Hexagon size | Time window | MAE | R$^2$ |
 |---|---|---|---|
-| Large (resolution 5, 8 cells) | 1 hour | 15.22 | 0.720 |
-| Large (resolution 5, 8 cells) | 3 hours | 36.98 | 0.841 |
-| Medium (resolution 6, 26 cells) | 1 hour | 6.50 | 0.657 |
-| Medium (resolution 6, 26 cells) | 3 hours | 16.25 | 0.719 |
+| Large (resolution 5, 8 cells) | 1 hour | 24.57 | 0.860 |
+| Large (resolution 5, 8 cells) | 4 hours | 73.37 | 0.938 |
+| Medium (resolution 6, 27 cells) | 1 hour | 8.18 | 0.889 |
+| Medium (resolution 6, 27 cells) | 4 hours | 31.10 | 0.902 |
  
 : SVR performance across spatial and temporal resolutions. {#tbl-svm-resolution}
  
-As the spatial unit becomes finer, the absolute prediction error (MAE) decreases because individual hexagons contain fewer trips on average, but the model's ability to explain variation (R$^2$) also decreases as the demand signal becomes noisier in smaller cells. 
-Hexagon size resolution 6 with 3-hour windows represents a practical balance. 
+As the spatial unit becomes finer, the absolute prediction error (MAE) decreases because individual hexagons contain fewer trips on average. The model's ability to explain variation (R$^2$) stays broadly comparable between resolutions 5 and 6, falling off only at the finest resolution 7 (not shown).
+Hexagon resolution 6 with 4-hour windows represents a practical balance.
 Using census tracts instead of hexagons as the spatial unit would introduce approximately 800 spatial units versus 27 at resolution 6, dramatically increasing sparsity and likely degrading performance further.
  
 **Model Shortfalls and Improvement Levers**
  
-The SVR's inability to beat the climatology baseline reveals three structural limitations worth addressing in a follow-up project.
-First, the model has no access to **recent actual demand counts**. 
+The SVR only marginally beats the climatology baseline, and three structural limitations explain why the margin is so thin; each is worth addressing in a follow-up project.
+First, the model has no access to **recent actual demand counts**.
 In time-series demand models, the previous period's actual demand is consistently the strongest single predictor, the model effectively learns that "demand at 18:00 tomorrow will be similar to demand at 18:00 today." 
 Adding these lag features would likely push performance well above the seasonal baseline.
-Second, the SVR is **computationally constrained**: fitting on the full training set is infeasible, so tuning is conducted on a 10,000-row subsample. 
+Second, the SVR is **computationally constrained**: fitting on the full training set is infeasible, so tuning is conducted on an 8,000-row subsample.
 The model has not seen all the information available in the data.
 Third, the one-hot hexagon encoding treats each cell as **completely independent**. 
 A spatially-aware representation, for example, encoding proximity to the city centre, distance to the nearest transport hub, or the demand level of neighbouring hexagons, would allow the model to generalise across cells rather than learning each one in isolation.
@@ -135,8 +135,8 @@ The following configurations are explored:
 
 | Setting | Options tested |
 |---|---|
-| Hidden layer sizes | [128, 64], [256, 128] |
-| Dropout (regularisation) | 0 %, 10 %, 20 % |
+| Hidden layer sizes | [64, 64], [128, 64], [256, 256], [64, 64, 64, 64] |
+| Dropout (regularisation) | 0 %, 10 % |
 | Learning rate | 0.1, 0.01, 0.001 |
 | Optimisation algorithm | SGD, Adam |
 
@@ -149,70 +149,69 @@ Using the best configuration found in the search above, we additionally compare 
 
 | Activation function | Validation MAE |
 |---|---|
-| ReLU | **11.91 trips** |
-| Tanh | 28.30 trips |
-| Sigmoid | 43.51 trips |
+| ReLU | 21.93 trips |
+| Tanh | 20.04 trips |
+| Sigmoid | 93.29 trips |
 
 : Validation error by activation function for the best network architecture. {#tbl-nn-activations}
 
-ReLU substantially outperforms the alternatives. Tanh and sigmoid suffer from a training problem known as gradient saturation: neurons in these functions tend to produce near-constant outputs for many inputs, which slows or prevents effective learning in deeper networks.
-The final model uses ReLU throughput.
+ReLU and tanh perform comparably on final validation MAE (21.9 versus 20.0), with ReLU converging faster and tracking lower for most of training and tanh only edging ahead right at the end. Sigmoid is far worse: it suffers from gradient saturation, where neurons produce near-constant outputs for many inputs, which slows or prevents effective learning in a network of this depth.
+The final model uses ReLU throughout, as the faster and more stable of the two comparable choices.
 
 **Final Test-Set Evaluation**
 
-The best configuration (two hidden layers of 128 and 64 neurons, ReLU activation, no dropout, learning rate 0.1, SGD optimiser) is retrained on the full training and validation data and evaluated once on the held-out test set.
- 
+The best configuration (two hidden layers of 256 and 256 neurons, ReLU activation, no dropout, learning rate 0.001, Adam optimiser) is retrained on the full training and validation data and evaluated once on the held-out test set.
+
 ![Training and validation loss curves for the final neural network model.](../data/raw/nn_training_curve.png){width=80% fig-align="center"}
  
 | Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
-| Climatology | 14.62 | 72.63 | 0.899 |
-| Neural network | **12.31** | **65.25** | **0.919** |
+| Climatology | 24.42 | 87.22 | 0.937 |
+| Neural network | **21.16** | **80.78** | **0.946** |
  
 : Neural network test-set performance compared to the climatology baseline. {#tbl-nn-results}
  
-Unlike the SVR, the neural network **outperforms the climatology baseline** on all metrics: MAE 12.31 versus 14.62, and R$^2$ of 0.919 versus 0.899.
+Like the SVR but by a clearer margin, the neural network **outperforms the climatology baseline** on all metrics: MAE 21.16 versus 24.42, and R$^2$ of 0.946 versus 0.937.
 This confirms that the neural network captures demand patterns that go beyond the repeating weekly seasonal cycle, in particular, non-linear interactions between weather conditions, time of day, and location that a fixed seasonal average cannot represent.
-The model's residual tendency to slightly under-predict ($-7.11$ trips on average) indicates that extreme demand events in the busiest downtown cells are still not fully captured. 
+The model's residual tendency to under-predict ($-8.25$ trips on average) indicates that extreme demand events in the busiest downtown cells are still not fully captured.
 These spikes are driven by factors not present in the feature set (unplanned events, sports fixtures, concerts) and would require dedicated event-calendar data to forecast reliably.
 
 
 **Illustrative Demand Forecasting**
 
 One direct application of the fitted model is a context-specific demand estimate. 
-Queried for expected demand in an outer-city hexagon on a rainy Sunday in July, from 10:00 to 18:00, the model returns:
- 
+Queried for expected demand in a selected hexagon on a rainy Sunday in July, from 10:00 to 18:00, the model returns:
+
 | Hour | Predicted trips |
 |---|---|
-| 10:00 | 3.7 |
-| 11:00 | 5.8 |
-| 12:00 | 6.9 |
-| 13:00 | 7.3 |
-| 14:00 | 7.2 |
-| 15:00 | 6.6 |
-| 16:00 | 4.6 |
-| 17:00 | 2.9 |
-| 18:00 | 1.5 |
-| **Total (8-hour window)** | **46.5** |
- 
-The gradual build-up and decline follows the leisure weekend pattern identified in the descriptive analysis. 
+| 10:00 | 34.4 |
+| 11:00 | 36.3 |
+| 12:00 | 37.3 |
+| 13:00 | 36.1 |
+| 14:00 | 34.1 |
+| 15:00 | 31.5 |
+| 16:00 | 27.5 |
+| 17:00 | 24.1 |
+| 18:00 | 20.4 |
+| **Total (10:00--18:00)** | **281.7** |
+
+The rise to a midday peak and gradual decline through the afternoon follows the leisure weekend pattern identified in the descriptive analysis.
 This kind of on-demand forecast (for any combination of location, time, weather, and day type) is the core operational output the model delivers to the fleet operator.
 
 
 ### Model Comparison
 
-A direct numerical comparison is complicated by a difference in time-window width between the two notebooks (3-hour windows for the SVR, 4-hour windows for the FFNN), which changes the absolute demand per cell and therefore the absolute MAE. 
-The meaningful comparison is therefore each model's performance relative to its own climatology baseline:
+Both models are trained on the same H3 resolution 6 grid with 4-hour windows, so their metrics are directly comparable. Each is also measured against its own climatology baseline; the two notebooks use slightly different random splits, which is why the baseline values differ a little:
 
 | Model | Setting | Climatology MAE | Model MAE | Improvement |
 |---|---|---|---|---|
-| SVR (RBF) | H3 res. 6, 3 h windows | 11.11 | ~15.8 | **Worse** ($-42$ %) |
-| Neural network | H3 res. 6, 4 h windows | 14.62 | 12.31 | **Better** (+16 %) |
+| SVR (RBF) | H3 res. 6, 4 h windows | 25.63 | 24.33 | **Better** (+5 %) |
+| Neural network | H3 res. 6, 4 h windows | 24.42 | 21.16 | **Better** (+13 %) |
  
 : Each model's performance relative to the climatology baseline under its own granularity setting. {#tbl-model-comparison}
  
-The neural network consistently outperforms the SVR in terms of improvement over the seasonal baseline. 
-The gap has two root causes. 
+Both models beat the seasonal baseline, but the neural network improves on it by a clearly wider margin than the SVR.
+The gap has two root causes.
 First, the neural network trains on the full dataset using mini-batch gradient descent, it scales efficiently with data size. 
 The SVR, by contrast, must be trained on a small subsample because of computational constraints, leaving most of the information in the training set unused. 
 Second, the neural network learns interactions between features jointly across all layers, while the SVR with a fixed kernel applies the same transformation to every input, it has less flexibility to adapt to the interplay between, say, rainy weather and late-evening demand in airport hexagons.
@@ -220,8 +219,8 @@ Second, the neural network learns interactions between features jointly across a
 **Is the Neural Network Worth the Added Complexity?**
  
 For this demand forecasting task, the answer is yes. 
-The SVR is easier to train and interpret, but it fails to improve on what a simple seasonal schedule already achieves. 
-The neural network's ability to beat the climatology baseline represents a meaningful operational gain: the model detects demand anomalies driven by weather and interactions between features, not merely reproducing the average weekly rhythm. 
+The SVR is easier to train and interpret, but it only marginally improves on what a simple seasonal schedule already achieves.
+The neural network beats the climatology baseline by a clearer margin, which represents a meaningful operational gain: the model detects demand anomalies driven by weather and interactions between features, not merely reproducing the average weekly rhythm.
 For a fleet operator making positioning decisions under changing weather or on atypical weekdays, this distinction matters, the seasonal average provides no signal about whether tomorrow's rainy Monday will see higher or lower demand than a dry one.
 
 
