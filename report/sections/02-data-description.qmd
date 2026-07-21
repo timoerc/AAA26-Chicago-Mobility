@@ -1,14 +1,12 @@
 # Data Description
 
-Three data sources feed the analysis: Chicago taxi trip records, hourly weather, and OpenStreet Map point-of-interest. 
+Three data sources feed the analysis: Chicago taxi trip records, hourly weather, and OpenStreetMap points of interest.
 Together they cover demand, environmental context, and urban structure.
 
 ## Taxi Trip Data
 
-Downloaded from the Chicago Data Portal on 10 May 2026, the dataset holds every taxi trip from January 2024 to early May 2026:
- **14,985,679 trips** across 21 columns. 
-Seven temporal features (date, hour, day of week, month, year, week, and whether a day is a weekened) are derived at load time, bringing the working total to 28.
-
+Downloaded from the Chicago Data Portal on 10 May 2026, the dataset holds every taxi trip from January 2024 to early May 2026: **14,985,679 trips** across 21 columns.
+Seven temporal features (date, hour, day of week, month, year, week, and whether a day is a weekend) are derived at load time, bringing the working total to 28.
 @tbl-taxi-columns lists the key fields.
 
  | Column | Type | Description |
@@ -37,19 +35,12 @@ Three portal design choices matter downstream.
 Both IDs are SHA-1 hashes, so there's no personally identifiable information.
 All timestamps are rounded to the nearest 15-minute interval for privacy. 
 This caps temporal precision at 15-minute bins but doesn't affect hourly or 4-hourly aggregations.
-And location is given only at the census tract level:
-with roughly 800 tracts in Chicago  the spatial grain is coarser than GPS, but each tract's centroid lat/lon supports spatial joins.
+And location is given only at the census tract level: with roughly 800 tracts in Chicago, the spatial grain is coarser than GPS, but each tract's centroid lat/lon supports spatial joins.
 
 ## Weather Data
-Hourly weather data was collected from Open-Meteo Historical Archive API [@openmeteo] for the same date range as the taxi data (January 2024 - May 2026).
-Because Chicago spans roughly 600 km$^2$ and exhibits meaningful microclimatic variation between lakefront, the urban core, and the far northwest, a single weather station would be inadequate representative.
-We therefore determined three representative weather zones by appliying K-means clustering (k = 3) to all taxi pickup coordinates, placing zone centroids where demand activity is the highest.
-The resulting zones are centered on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W).
-
-Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range (January 2024 - May 2026).
-Chicago spans about 600 km² with real microclimatic variation between lakefront, the urban core, and the far northwest, so one weather station won't represent it.
-We defined three representative weather zones by K-means clustering (k = 3) on all pickup coordinates, placing zone centroids where demand activity is densest:
-the downtown core (41.886°N, 87.629°W), O'Hare (41.979°N, 87.903°W), and the South Side (41.785°N, 87.750°W).
+Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range as the taxi data (January 2024 - May 2026).
+Because Chicago spans roughly 600 km$^2$ and exhibits meaningful microclimatic variation between the lakefront, the urban core, and the far northwest, a single weather station would not be representative.
+We therefore defined three representative weather zones by K-means clustering (k = 3) on all taxi pickup coordinates, placing zone centroids where demand activity is densest: the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W).
 
 | Variable | Unit | Description |
 |---|---|---|
@@ -66,13 +57,13 @@ the downtown core (41.886°N, 87.629°W), O'Hare (41.979°N, 87.903°W), and the
 : Hourly weather variables fetched from Open-Meteo. {#tbl-weather-vars}
 
 The dataset contains **61,335 observations** (~20,445 hours for each zone).
-Temperatures range from $-26.8$ $^\circ$C to 36.3 $^\circ$C, with appraent temperatures as low as $-32.9$ $^\circ$C due to wind chill, which is consistent with Chicago's continental climate. Median hourly precipitation is near zero while median cloud cover stands at 83 %, reflecting the city's characteristically overcast conditions.
+Temperatures range from $-26.8$ $^\circ$C to 36.3 $^\circ$C, with apparent temperatures as low as $-32.9$ $^\circ$C due to wind chill, which is consistent with Chicago's continental climate. Median hourly precipitation is near zero while median cloud cover stands at 83 %, reflecting the city's characteristically overcast conditions.
 
 ## Point-of-Interest Data
-POI data comes from OpenStreetMap via`osmnx` [@boeing2017osmnx],querying four tag categories for Chicago: `amenity`, `shop`, `tourism`, and `leisure`.
-The raw tags (e.g. restaurant, bus_stop, hospital) are too fine-grained to use directly, since many are too sparse for stable per-hexagon counts, and their demand signals overlaps (e.g. café and bar both mean nightlife). 
-We collapsed them into seven demand-relevant categories, grouping tags with similar expected demand timing and dropping tags too niche to matter. 
-After converting  polygons to centroids and discarding unmapped types, **9,124 POIs** remain (@tbl-poi-categories).
+POI data comes from OpenStreetMap via `osmnx` [@boeing2017osmnx], querying four tag categories for Chicago: `amenity`, `shop`, `tourism`, and `leisure`.
+The raw tags (e.g. restaurant, bus_stop, hospital) are too fine-grained to use directly, since many are too sparse for stable per-hexagon counts, and their demand signals overlap (e.g. café and bar both mean nightlife).
+We collapsed them into seven demand-relevant categories, grouping tags with similar expected demand timing and dropping tags too niche to matter.
+After converting polygons to centroids and discarding unmapped types, **9,124 POIs** remain (@tbl-poi-categories).
 
 | Category | Count | Examples |
 |---|---|---|
@@ -80,7 +71,7 @@ After converting  polygons to centroids and discarding unmapped types, **9,124 P
 | Education | 1,219 | Schools, universities, libraries |
 | Shopping | 1,084 | Supermarkets, clothing, electronics |
 | Healthcare | 469 | Hospitals, clinics, pharmacies |
-| Entertainment | 348 | Theatres, cinemas, museums |
+| Entertainment | 348 | Theaters, cinemas, museums |
 | Accommodation | 229 | Hotels, hostels |
 | Transport | 135 | Bus stops, subway entrances, ferry terminals |
  

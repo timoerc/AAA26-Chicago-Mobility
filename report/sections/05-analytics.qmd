@@ -7,19 +7,17 @@
 The forecasting task is to predict **taxi demand per spatial unit and time window**, which we define as the number of taxi trips that start in a given hexagon during a given time period, using only information that is available before the window begins: time of day, day of week, weather forecast, and location.
 We want to answer questions like "what demand can we expect on a rainy Sunday from 12:00--16:00 in the outskirts?", not to project forward from the previous window's actual counts, which a planner would not have.
 
-**Target transformation.** Trip counts are zero-inflated and right-skewed: a few downtown cells record hundreds of pickups per window while most outer cells record single digits.
-We log-transform the target before training to stabilize the variance, and report all metrics on the back-transformed count scale so they stay interpretable in trips.
-
-**Train / validation / test split.** The demand grid is shuffled and split 50 / 20 / 30.
+Two properties of the target shape the setup that follows.
+Trip counts are zero-inflated and right-skewed, with a few downtown cells recording hundreds of pickups per window while most outer cells record single digits, so we log-transform the target before training to stabilize the variance and report all metrics on the back-transformed count scale to keep them interpretable in trips.
+And because no model uses lagged demand, no temporal signal can leak through row order, which lets us shuffle the demand grid and split it 50 / 20 / 30 instead of cutting it chronologically.
 Validation selects model configurations, while the test set is touched only once, for the final metrics.
-Random shuffling is safe here because no model uses lagged demand, so there is no temporal signal to leak through row order.
 
-**Baselines.** Two naive benchmarks provide context:
+Two naive benchmarks provide the context against which everything below is read:
 
 - *Per-cell mean*: the historical average demand for each hexagon and time window. MAE = 67.18 trips.
 - *Climatology*: the historical average for each hexagon, hour of day, and weekday-vs-weekend combination. MAE = 25.63 trips.
 
-Any model that fails to beat the per-cell mean offers nothing. Climatology is the real hurdle, since it already captures the weekly cycle that drives most foreseeable demand variation.
+Any model that fails to beat the per-cell mean offers nothing, but climatology is the real hurdle, since it already captures the weekly cycle that drives most foreseeable demand variation.
 
 ### Support Vector Machine
 
@@ -28,11 +26,7 @@ Any model that fails to beat the per-cell mean offers nothing. Climatology is th
 A Support Vector Machine for regression (SVR) fits a function that stays within a tolerance band around the observed values while remaining as smooth as possible.
 The kernel sets the shape of that function: linear allows only straight-line relationships, polynomial curved ones, and the Radial Basis Function (RBF) highly flexible non-linear relationships.
 We start simple and add complexity, so that any gain can be attributed to the added flexibility rather than assumed.
-
-Three settings are tuned alongside the kernel: C, a regularization parameter; epsilon, the width of the no-penalty tolerance band; and gamma, how far each observation's influence reaches (RBF and polynomial only).
-
-**Kernel Comparison Results**
-
+Alongside the kernel we tune three settings: C, a regularization parameter; epsilon, the width of the no-penalty tolerance band; and gamma, how far each observation's influence reaches (RBF and polynomial only).
 @tbl-svm-kernels shows the best result achieved per kernel family on the validation set.
 
 | Kernel type | Best regularization | Validation MAE |
@@ -48,7 +42,8 @@ We take the RBF kernel with C = 10 and epsilon = 0.1 into final evaluation.
 
 **Final Test-Set Evaluation**
 
-\noindent @tbl-svm-results compares the best SVR against the two baselines on the held-out test set of 41,367 grid cells.
+\noindent With the configuration fixed, the model is refit and scored once on the held-out test set of 41,367 grid cells, which is the only point at which that data is used.
+@tbl-svm-results puts the result next to the two baselines.
 
 | Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
@@ -60,10 +55,7 @@ We take the RBF kernel with C = 10 and epsilon = 0.1 into final evaluation.
 
 The SVR beats both baselines, but the margin over climatology is rather small.
 With no access to recent actual counts, most of what the SVR can learn is the same seasonal pattern climatology already encodes, and it has to recover that pattern from general-purpose features instead of reading it off a precomputed schedule.
-
-**Where the Error Concentrates**
-
-The headline error figure conceals important structure in where the model struggles most.
+That headline figure also conceals important structure in where the model struggles, so @tbl-svm-error breaks the same test set down by demand level.
 
 | Demand level (trips per window) | MAE | Observations |
 |---|---|---|

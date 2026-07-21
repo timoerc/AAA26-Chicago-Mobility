@@ -2,13 +2,9 @@
 
 ## Taxi Data Cleaning
 
-Public portal data needs validation before use. 
-Rather than applying fixed rules upfront, we worked through the taxi dataset step by step, by surfacing each quality issue, diagnosing its cause, and choosing a justified fix. 
-Cleaning removes just over 10 % of raw records, retaining 89.99 % for analysis.
-
-### Missing values
-
-Different fields are missing for different reasons,so each gets its own treatment (@tbl-missing).
+Public portal data needs validation before use.
+Rather than applying fixed rules upfront, we worked through the taxi dataset step by step, surfacing each quality issue, diagnosing its cause, and choosing a justified fix; in total, cleaning removes just over 10 % of raw records, retaining 89.99 % for analysis.
+The first issue is missing values, where different fields are missing for different reasons, so each gets its own treatment (@tbl-missing).
 
 | Field | Missing | Cause | Treatment |
 |---|---|---|---|
@@ -22,12 +18,10 @@ Different fields are missing for different reasons,so each gets its own treatmen
 
 ### Consistency Checks
  
-Beyond missing values, some records are present but aren't real journey.
- **Ghost trips.** have zero seconds, identical start/end time, identical start/end location, which look like a meter switched on and off. 
-All four conditions must hold, so genuine short trips survive, so we remove the **153,078** that qualify (~1%).
-A further **1,014,515 trips** (6.8 %) log zero distance despite positive duration, with a median of of 46 seconds and a quarter under 6 seconds.
-These meter cancellations or GPS failures are all excluded. 
-These are overwhelmingly meter cancellations or GPS failures rather than real journeys. Any trip with zero recorded distance is excluded.
+Beyond missing values, some records are present but aren't real journeys.
+Ghost trips have zero seconds, identical start and end times, and identical start and end locations, which looks like a meter switched on and off; all four conditions must hold, so genuine short trips survive, and we remove the **153,078** records that qualify (~1 %).
+A further **1,014,515 trips** (6.8 %) log zero distance despite positive duration, with a median of 46 seconds and a quarter under 6 seconds.
+These are overwhelmingly meter cancellations or GPS failures rather than real journeys, so any trip with zero recorded distance is excluded as well.
 We also confirmed no end-before-start inversions and no duplicate trip IDs.
  
 ### Billing Discrepancy
@@ -39,8 +33,8 @@ We apply no correction and treat `trip_total` as the authoritative revenue figur
  
 ### Outlier Removal
  
-After dropping non-journeys, we remove physically implausible values using two derived metrics (average speed and fare per mile). 
-@tbl-outlier-rules lists the thresholds counts.
+After dropping non-journeys, we remove physically implausible values using two derived metrics, average speed and fare per mile, with the thresholds and resulting counts listed in @tbl-outlier-rules.
+The criteria are deliberately conservative, and as a check, the correlation between per-neighborhood pickup counts before and after outlier removal is 1.0000, meaning the spatial demand signal is fully preserved.
  
 | Criterion | Records removed | Share of dataset |
 |---|---|---|
@@ -53,15 +47,11 @@ After dropping non-journeys, we remove physically implausible values using two d
 | Fare above \$100 per mile | small | < 0.01 % |
  
 : Outlier removal criteria applied to the taxi trip dataset. {#tbl-outlier-rules}
- 
-As a check, correlation between per-neighborhood pickup counts before and after outlier removal is 1.0000, meaning the spatial demand signal is fully preserved.
- 
+
 ### Two Cleaning Levels
- 
-Not every task requires the same level of cleaning. 
-For **demand forecasting**, a trip with an odd speed or fare is still a real demand event. 
-For **trip-level analyses** like  duration or fare modeling, those records distort results. 
-So we keep two versions:
+
+Not every task requires the same level of cleaning: for **demand forecasting**, a trip with an odd speed or fare is still a real demand event, whereas for **trip-level analyses** like duration or fare modeling those same records distort results.
+We therefore keep two versions, and use them accordingly: demand forecasting (Sections 4-5) draws on the minimal level, while the profitability analysis uses the full one.
  
 | Level | What is removed | Rows retained |
 |---|---|---|
@@ -69,38 +59,31 @@ So we keep two versions:
 | Trip (full) | Above, plus missing vehicle ID, ghost trips, zero-distance trips, and speed/fare outliers | 13,485,728 (89.99 %) |
  
 : Rows retained under each cleaning level. {#tbl-cleaning-ledger}
- 
-Demand forecasting (Section 4-5) uses the minimal cleaning level; the profitability analysis uses the full level.
- 
+
 ## Weather Data Preparation
  
-**Zone assignment.** The three weather zones from Section 2 come from K-means(k = 3) on all pickup locations.
-Both the elbow method silhouette score pointed to k = 3.
- 
-** Condition codes.** The raw data carriers a WMO condition code (0--99).
-Treating it as a number implies a false ordering (code 95 isn't "95$\times$ worse" than code 1), and only three conditions actually appear: clear, rain, snow.
-Since rain and snow already have their own numeric columns, the code add nothing and is dropped.
- 
-**Clock-change gaps.** Each zone shows one hour gaps on spring-forward day (2024-03-10, 2025-03-09).
-The 02:00 hour doesn't exist when clocks jump 01:00 → 03:00, so the gap is correct and no imputation is needed.
+The three weather zones from Section 2 come from K-means (k = 3) on all pickup locations, with both the elbow method and the silhouette score pointing to k = 3.
+Two further adjustments follow from inspecting the raw hourly series.
+The data carries a WMO condition code (0--99), but treating it as a number implies a false ordering (code 95 isn't "95$\times$ worse" than code 1), and only three conditions actually appear: clear, rain, snow.
+Since rain and snow already have their own numeric columns, the code adds nothing and is dropped.
+Each zone also shows one-hour gaps on spring-forward day (2024-03-10, 2025-03-09), but the 02:00 hour doesn't exist when clocks jump 01:00 → 03:00, so the gap is correct and no imputation is needed.
  
 ## Point-of-Interest Data Preparation
  
-The OSM query returns points, polygons, lines. 
-All non-point features are reduced to their centroid,  so every POI is a single coordinate. 
-Each is  mapped to one of seven functional categories via a lookup table, with unmapped types discarded. 
+The OSM query returns points, polygons, and lines.
+All non-point features are reduced to their centroid, so every POI is a single coordinate.
+Each is mapped to one of seven functional categories via a lookup table, with unmapped types discarded.
 The final 9,124 POIs are assigned to the hexagon containing their coordinate.
  
 ## Feature Engineering
  
 The models don't run on individual trips. 
-Trips are aggregated to a grid: one row per *(hexagon, time bucket)* , with pickup count as the target. 
+Trips are aggregated to a grid: one row per *(hexagon, time bucket)*, with pickup count as the target.
 Cells with no pickups are kept as explicit zero-demand rows, so the model learns from quiet periods too.
  
 ### Spatial and Temporal Granularity
  
-Grain sets a  trade-off: finer units capture local variation but leave more cells at or near zero, which is harder to forecast. 
-@tbl-sparsity ishows the effect.
+Grain sets a trade-off: finer units capture local variation but leave more cells at or near zero, which is harder to forecast, and @tbl-sparsity shows how sharply that sparsity grows.
  
 | Spatial unit | Time bucket | Grid cells | Zero-demand share |
 |---|---|---|---|
@@ -112,18 +95,16 @@ Grain sets a  trade-off: finer units capture local variation but leave more cell
 : Zero-demand share across spatial and temporal granularities. {#tbl-sparsity}
 
 We chose **H3 resolution 6 with 4-hour buckets** as our main resolution for now based on the relatively low zero-demand share: 137,889 cells (27 hexagons $\times$ 5,107 time buckets) at a manageable 12.6 % zero-demand share.
-Resolution 7 pushes zero-demand close to 50% without a matching gain in operational precision.
+Resolution 7 pushes zero-demand close to 50 % without a matching gain in operational precision.
 Throughout the report, we show results at this spatio-temporal resolution, but we also explore the effect of coarser and finer resolutions in Section 4.3.
 
 ### Features Used in the Forecasting Models
  
-Each feature is knowable before the bucket begins:
- 
-- **Calendar context.** - hour, day of week, month, weekend flag, US public holiday flag. 
+Every feature is knowable before the bucket begins, which rules out anything derived from the demand being predicted, and together the four groups below give 51 input variables per grid cell:
+
+- **Calendar context** - hour, day of week, month, weekend flag, US public holiday flag.
 These carry the daily and weekly rhythms from the descriptive analysis.
 - **Cyclic encoding** - calendar variables are circular (23:00 is next to 00:00, December next to January), so each becomes a sine-cosine pair rather than a plain integer that implies a false break.
-- **Weather conditions** - the nine variables for the nearest zone during the bucket, known in advance from forecasts.  
+- **Weather conditions** - the nine variables for the nearest zone during the bucket, known in advance from forecasts.
 - **Spatial identity** - a binary indicator per hexagon, letting the model learn a cell-specific baseline without assuming how neighboring cells relate.
- 
-Together these give 50 input variables per grid cell.
  
