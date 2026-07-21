@@ -14,7 +14,7 @@ Seven temporal features (date, hour, day of week, month, year, week, and whether
  | Column | Type | Description |
 |:--------------------------------|:----------------|:----------------------------|
 | `trip_id` | string | SHA-1 hash; unique journey identifier |
-| `taxi_id` | string | SHA-1 hash; anonymised vehicle identifier |
+| `taxi_id` | string | SHA-1 hash; anonymized vehicle identifier |
 | `trip_start_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
 | `trip_end_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
 | `trip_seconds` | float | Recorded journey duration in seconds |
@@ -44,7 +44,7 @@ with roughly 800 tracts in Chicago  the spatial grain is coarser than GPS, but e
 Hourly weather data was collected from Open-Meteo Historical Archive API [@openmeteo] for the same date range as the taxi data (January 2024 - May 2026).
 Because Chicago spans roughly 600 km$^2$ and exhibits meaningful microclimatic variation between lakefront, the urban core, and the far northwest, a single weather station would be inadequate representative.
 We therefore determined three representative weather zones by appliying K-means clustering (k = 3) to all taxi pickup coordinates, placing zone centroids where demand activity is the highest.
-The resulting zones are centred on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W).
+The resulting zones are centered on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W).
 
 Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range (January 2024 - May 2026).
 Chicago spans about 600 km² with real microclimatic variation between lakefront, the urban core, and the far northwest, so one weather station won't represent it.

@@ -17,7 +17,7 @@
 ## Spatial Analytics
 
 The spatial analysis characterizes where demand originates and how it is distributed acroos Chicago's geography.
-We work from coarse neighbourhood-level aggregations down to fine-grained hexagonal cells, and complement static demand maps with flow analysis and profitability metrics.
+We work from coarse neighborhood-level aggregations down to fine-grained hexagonal cells, and complement static demand maps with flow analysis and profitability metrics.
 
 ### Spatial Discretization: H3 Hexagonal Grid
 

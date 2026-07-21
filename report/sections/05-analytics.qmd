@@ -4,12 +4,11 @@
 
 ### Problem Formulation and Validation Strategy
 
-The forecasting task is to predict **taxi demand per spatial unit and time window**, that is the number of pickups in a given hexagon during a given 4-hour period, using only information that is available before the window begins: time of day, day of week, weather forecast, and location.
-The framing is cross-sectional, not sequential.
+The forecasting task is to predict **taxi demand per spatial unit and time window**, which we define as the number of taxi trips that start in a given hexagon during a given time period, using only information that is available before the window begins: time of day, day of week, weather forecast, and location.
 We want to answer questions like "what demand can we expect on a rainy Sunday from 12:00--16:00 in the outskirts?", not to project forward from the previous window's actual counts, which a planner would not have.
 
 **Target transformation.** Trip counts are zero-inflated and right-skewed: a few downtown cells record hundreds of pickups per window while most outer cells record single digits.
-We log-transform the target before training to stabilise the variance, and report all metrics on the back-transformed count scale so they stay interpretable in trips.
+We log-transform the target before training to stabilize the variance, and report all metrics on the back-transformed count scale so they stay interpretable in trips.
 
 **Train / validation / test split.** The demand grid is shuffled and split 50 / 20 / 30.
 Validation selects model configurations, while the test set is touched only once, for the final metrics.
@@ -28,17 +27,15 @@ Any model that fails to beat the per-cell mean offers nothing. Climatology is th
 
 A Support Vector Machine for regression (SVR) fits a function that stays within a tolerance band around the observed values while remaining as smooth as possible.
 The kernel sets the shape of that function: linear allows only straight-line relationships, polynomial curved ones, and the Radial Basis Function (RBF) highly flexible non-linear relationships.
-Following the prescribed approach, we start simple and add complexity.
+We start simple and add complexity, so that any gain can be attributed to the added flexibility rather than assumed.
 
-Three settings are tuned alongside the kernel: C, how closely the model fits the training data; epsilon, the width of the no-penalty tolerance band; and gamma, how far each observation's influence reaches (RBF and polynomial only).
-
-SVR scales poorly with training set size, so tuning ran on a random subsample of 8,000 observations, with the best configuration refit on 30,000 rows for final evaluation.
+Three settings are tuned alongside the kernel: C, a regularization parameter; epsilon, the width of the no-penalty tolerance band; and gamma, how far each observation's influence reaches (RBF and polynomial only).
 
 **Kernel Comparison Results**
 
 @tbl-svm-kernels shows the best result achieved per kernel family on the validation set.
 
-| Kernel type | Best regularisation | Validation MAE |
+| Kernel type | Best regularization | Validation MAE |
 |---|---|---|
 | Linear | C = 1.0 | 39.58 trips |
 | Polynomial | C = 10.0 | 29.59 trips |
@@ -61,10 +58,8 @@ We take the RBF kernel with C = 10 and epsilon = 0.1 into final evaluation.
 
 : SVR test-set performance compared to baselines. {#tbl-svm-results}
 
-The SVR beats both baselines, but the margin over climatology is thin: MAE 24.33 against 25.63, an improvement of roughly 5 %.
-That is informative rather than surprising.
+The SVR beats both baselines, but the margin over climatology is rather small.
 With no access to recent actual counts, most of what the SVR can learn is the same seasonal pattern climatology already encodes, and it has to recover that pattern from general-purpose features instead of reading it off a precomputed schedule.
-The 5 % it adds comes from the weather and calendar interactions a fixed schedule cannot represent.
 
 **Where the Error Concentrates**
 
@@ -81,33 +76,42 @@ The headline error figure conceals important structure in where the model strugg
 : SVR test-set error decomposed by demand level. {#tbl-svm-error}
 
 Accuracy is high on low-demand cells, which make up the largest share of the test set (14,615 of 41,367 cells sit below 5 trips per window), but the model systematically under-predicts the busy downtown and airport hexagons where forecasts matter most.
-This is a known artefact of log-transformed regression: training compresses extreme values, so predictions fall short once returned to the original scale.
+This is a known artifact of log-transformed regression: training compresses extreme values, so predictions fall short once returned to the original scale.
 
 **Effect of Spatial and Temporal Resolution**
 
-The assignment requires assessing performance across granularity choices, so we test the tuned configuration across hexagon sizes and window widths.
+To assess performance across different granularity choices, we test the tuned configuration across the full grid of three spatial resolutions and three time-window widths.
+Raw MAE is not comparable across these settings: finer hexagons and narrower windows mechanically hold fewer trips per cell, so the absolute error shrinks even when skill does not improve.
+We therefore judge the comparison on $R^2$ and MAPE, both scale-independent, and report MAE only for reference.
 
-| Hexagon size | Time window | MAE | R$^2$ |
-|---|---|---|---|
-| Large (resolution 5, 8 cells) | 1 hour | 24.57 | 0.860 |
-| Large (resolution 5, 8 cells) | 4 hours | 73.37 | 0.938 |
-| Medium (resolution 6, 27 cells) | 1 hour | 8.18 | 0.889 |
-| Medium (resolution 6, 27 cells) | 4 hours | 31.10 | 0.902 |
+| Hexagon size | Time window | MAE | R$^2$ | MAPE |
+|---|---|---|---|---|
+| Large (resolution 5, 8 cells) | 1 hour | 24.57 | 0.860 | 0.454 |
+| Large (resolution 5, 8 cells) | 4 hours | 73.37 | 0.938 | 0.315 |
+| Large (resolution 5, 8 cells) | 8 hours | 116.64 | 0.944 | 0.227 |
+| Medium (resolution 6, 27 cells) | 1 hour | 8.18 | 0.889 | 0.582 |
+| Medium (resolution 6, 27 cells) | 4 hours | 31.10 | 0.902 | 0.454 |
+| Medium (resolution 6, 27 cells) | 8 hours | 45.73 | 0.948 | 0.323 |
+| Small (resolution 7, 128 cells) | 1 hour | 2.98 | 0.790 | 0.704 |
+| Small (resolution 7, 128 cells) | 4 hours | 9.50 | 0.842 | 0.599 |
+| Small (resolution 7, 128 cells) | 8 hours | 12.69 | 0.886 | 0.455 |
 
 : SVR performance across spatial and temporal resolutions. {#tbl-svm-resolution}
 
-Finer spatial units lower the absolute error because each hexagon holds fewer trips.
-R$^2$ does not move monotonically: going from resolution 5 to 6 raises it at hourly windows (0.860 to 0.889) but lowers it at 4-hour windows (0.938 to 0.902).
-Resolution 6 with 4-hour windows is a reasonable balance.
-Census tracts would mean roughly 800 spatial units instead of 27, and the added sparsity would likely make things worse.
+The two dimensions pull in opposite directions.
+Wider time windows help consistently: at every resolution, moving from 1-hour to 8-hour windows raises $R^2$ and lowers MAPE, because aggregating over more hours averages out the short-term noise the model cannot see.
+Finer hexagons hurt: MAPE rises monotonically from resolution 5 to 7 at every window width, and $R^2$ holds roughly steady between resolutions 5 and 6 before dropping clearly at resolution 7 (0.790 to 0.886, against 0.860 to 0.944 at resolution 5).
+Splitting the city into 128 cells spreads the same trips more thinly, and with no lag features the model has little left to distinguish neighboring cells.
+Resolution 6 with 4-hour windows is the balance we keep: it retains enough spatial detail to be operationally useful while staying in the range where the model still performs.
+Census tracts would mean roughly 800 spatial units, well beyond resolution 7, and the trend here suggests the added sparsity would make things worse still.
 
 **Model Shortfalls**
 
 Three structural limits explain why the margin over climatology stays thin, and each is a lever for follow-up work.
-The model has no access to recent actual demand counts, normally the strongest single predictor in demand forecasting; the assignment rules lag features out here, but they would likely widen the margin considerably.
+The model has no access to recent actual demand counts, normally the strongest single predictor in demand forecasting; we deliberately exclude lag features to keep the framing purely cross-sectional, but adding them would likely widen the margin considerably.
 It is also computationally constrained: tuning ran on 8,000 rows and the final refit on 30,000, so the model never saw most of the training data.
 Finally, the one-hot hexagon encoding treats every cell as independent.
-Encoding distance to the city centre or to the nearest transport hub would let the model learn shared spatial structure instead of memorising each hexagon in isolation.
+Encoding distance to the city center or to the nearest transport hub would let the model learn shared spatial structure instead of memorizing each hexagon in isolation.
 
 ### Feedforward Neural Network
 
@@ -115,7 +119,7 @@ Encoding distance to the city centre or to the nearest transport hub would let t
 
 We train a fully connected feedforward neural network (FFNN) on the same demand grid and feature set as the SVR, so the two are directly comparable.
 The network takes the 51-variable feature vector as input, passes it through stacked layers of neurons, and returns a single demand estimate.
-A grid search covers hidden layer sizes ([64, 64], [128, 64], [256, 256] and [64, 64, 64, 64]), dropout (0 %, 10 %), learning rate (0.1, 0.01, 0.001) and optimiser (SGD, Adam).
+A grid search covers hidden layer sizes ([64, 64], [128, 64], [256, 256] and [64, 64, 64, 64]), dropout (0 %, 10 %), learning rate (0.1, 0.01, 0.001) and optimizer (SGD, Adam).
 Each candidate trains for up to 200 iterations, stopping early after 20 iterations without validation improvement.
 The winning configuration is then retrained from scratch on the combined training and validation data.
 
@@ -137,7 +141,7 @@ The final model uses ReLU. The gap to tanh is under two trips of MAE, small enou
 
 \noindent\textbf{Final Test-Set Evaluation}
 
-The best configuration (two hidden layers of 256 neurons each, ReLU activation, no dropout, learning rate 0.001, Adam optimiser) is retrained on all training and validation data and evaluated once on the held-out test set.
+The best configuration (two hidden layers of 256 neurons each, ReLU activation, no dropout, learning rate 0.001, Adam optimizer) is retrained on all training and validation data and evaluated once on the held-out test set.
 
 ![Training and validation loss curves for the final neural network model.](../data/raw/nn_training_curve.png){width=80% fig-align="center"}
 

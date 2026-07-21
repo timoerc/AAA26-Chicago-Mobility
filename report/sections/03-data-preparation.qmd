@@ -34,8 +34,8 @@ We also confirmed no end-before-start inversions and no duplicate trip IDs.
  
 The billed total and the sum of its components (fare, tips, tolls, extras) disagree in 47.9 % of rows. 
 The gap is always positive, almost always exactly \$0.50, and concentrated in credit-card and mobile payment transactions. 
-This pattern is consistent with a card processing surcharg that's added to the total but is not itemised. 
-We apply no correction and treat `trip_total` as the authorative revenue figure.
+This pattern is consistent with a card processing surcharge that's added to the total but is not itemized.
+We apply no correction and treat `trip_total` as the authoritative revenue figure.
  
 ### Outlier Removal
  
@@ -54,13 +54,13 @@ After dropping non-journeys, we remove physically implausible values using two d
  
 : Outlier removal criteria applied to the taxi trip dataset. {#tbl-outlier-rules}
  
-As a check, correlation between per-neighbourhood pickup counts before and after outlier removal is 1.0000, meaning the spatial demand signal is fully preserved.
+As a check, correlation between per-neighborhood pickup counts before and after outlier removal is 1.0000, meaning the spatial demand signal is fully preserved.
  
 ### Two Cleaning Levels
  
 Not every task requires the same level of cleaning. 
 For **demand forecasting**, a trip with an odd speed or fare is still a real demand event. 
-For **trip-level analyses** like  duration or fare modelling, those records distort results. 
+For **trip-level analyses** like  duration or fare modeling, those records distort results. 
 So we keep two versions:
  
 | Level | What is removed | Rows retained |
@@ -123,7 +123,7 @@ Each feature is knowable before the bucket begins:
 These carry the daily and weekly rhythms from the descriptive analysis.
 - **Cyclic encoding** - calendar variables are circular (23:00 is next to 00:00, December next to January), so each becomes a sine-cosine pair rather than a plain integer that implies a false break.
 - **Weather conditions** - the nine variables for the nearest zone during the bucket, known in advance from forecasts.  
-- **Spatial identity** - a binary indicator per hexagon, letting the model learn a cell-specific baseline without assuming how neighbouring cells relate.
+- **Spatial identity** - a binary indicator per hexagon, letting the model learn a cell-specific baseline without assuming how neighboring cells relate.
  
 Together these give 50 input variables per grid cell.
  
