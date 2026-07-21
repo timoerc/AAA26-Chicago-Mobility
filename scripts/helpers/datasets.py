@@ -1,3 +1,4 @@
+import os
 import sys
 from typing import Literal
 import h3
@@ -14,11 +15,42 @@ _ROOT = Path(__file__).resolve().parent.parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-_TAXI_DATA_PATH = _ROOT / "data" / "raw" / "chicago_taxi_trips_2024.csv"
 _TS_COLS = ["trip_start_timestamp", "trip_end_timestamp"]
-_WEATHER_DATA_PATH = _ROOT / "data" / "raw" / "chicago_weather_hourly.csv"
 _WEATHER_ZONES_PATH = _ROOT / "data" / "raw" / "weather_zones.json"
 _PROCESSED_DIR = _ROOT / "data" / "processed"
+
+
+def _resolve_data_path(full_path: Path, demo_path: Path, label: str) -> Path:
+    """Use the real dataset if present, otherwise fall back to the bundled demo one.
+
+    Lets a fresh clone without the (multi-GB, gitignored) real CSVs still run every
+    notebook end-to-end against `data/demo/` for verification purposes — no setup
+    step required. Set AAA_FORCE_DEMO_DATA=1 to use the demo data even when the
+    real file is present (e.g. to sanity-check the demo path without deleting data).
+    """
+    force_demo = os.environ.get("AAA_FORCE_DEMO_DATA", "").lower() in ("1", "true", "yes")
+    if not force_demo and full_path.exists():
+        return full_path
+    if not demo_path.exists():
+        raise FileNotFoundError(
+            f"Neither the full {label} dataset ({full_path}) nor the demo dataset "
+            f"({demo_path}) was found. Run the appropriate scripts/download_*.py "
+            f"script, or scripts/generate_demo_data.py to (re)create the demo data."
+        )
+    print(f"[datasets] {label}: full dataset not found, using demo dataset at {demo_path}")
+    return demo_path
+
+
+_TAXI_DATA_PATH = _resolve_data_path(
+    _ROOT / "data" / "raw" / "chicago_taxi_trips_2024.csv",
+    _ROOT / "data" / "demo" / "chicago_taxi_trips_2024_demo.csv",
+    "taxi",
+)
+_WEATHER_DATA_PATH = _resolve_data_path(
+    _ROOT / "data" / "raw" / "chicago_weather_hourly.csv",
+    _ROOT / "data" / "demo" / "chicago_weather_hourly_demo.csv",
+    "weather",
+)
 
 def load_taxi_data(
     preprocessed: bool = True,

@@ -70,6 +70,13 @@ data/raw/*
 # Exception
 !data/raw/*.png
 
+# Static reference data (small, needed by both full and demo runs)
+!data/raw/community_areas.geojson
+!data/raw/weather_zones.json
+
+# Allow the bundled demo dataset (small, safe to commit)
+!data/demo/
+
 cache/
 
 

@@ -33,8 +33,8 @@ BASE_URL  = "https://data.cityofchicago.org/resource/ajtu-isnz.csv"
 COUNT_URL = "https://data.cityofchicago.org/resource/ajtu-isnz.json"
 
 REPO_ROOT  = Path(__file__).resolve().parents[1]
-OUTPUT_FILE = REPO_ROOT / "data" / "raw_parts" / "chicago_taxi_trips_2024.csv"
-PARTS_DIR   = REPO_ROOT / "data" / "raw_parts" / "parts"
+OUTPUT_FILE = REPO_ROOT / "data" / "raw" / "chicago_taxi_trips_2024.csv"
+PARTS_DIR   = REPO_ROOT / "data" / "raw" / "parts"
 
 # ── Download configuration ────────────────────────────────────────────────────
 
