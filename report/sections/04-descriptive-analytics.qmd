@@ -17,7 +17,7 @@ Idle time between a driver's consecutive trips concentrates in the 0--30 minute 
 
 ## Where Demand Happens
 
-To analyse space consistently we discretise the city with Uber's H3 hexagonal grid, which offers uniform cell areas and clean adjacency where administrative boundaries don't (grid illustration in @sec-app-figures).
+To analyze space consistently we discretize the city with Uber's H3 hexagonal grid, which offers uniform cell areas and clean adjacency where administrative boundaries don't (grid illustration in @sec-app-figures).
 The maps below use resolution 7.
 The forecasting models in Section 5 operate one step coarser, at resolution 6.
 
@@ -25,7 +25,7 @@ The forecasting models in Section 5 operate one step coarser, at resolution 6.
 
 The Near North Side and the Loop dominate demand, consistent with their role as Chicago's central business and entertainment district, while O'Hare forms a structurally distinct cluster in the far northwest.
 As resolution increases the hotspots sharpen into specific corridors (the Magnificent Mile, River North, the area around O'Hare), and areas that look moderate at community level turn out to vary strongly inside.
-Community-area aggregation hides exactly the sub-neighbourhood differences a fleet needs for positioning decisions.
+Community-area aggregation hides exactly the sub-neighborhood differences a fleet needs for positioning decisions.
 
 The picture shifts over the day, but the downtown-lakefront corridor stays dominant in every 4-hour window (maps in @sec-app-figures).
 Overnight, the downtown core keeps relative activity from hospitality traffic.
@@ -36,7 +36,7 @@ Early mornings add a secondary hotspot around Midway from first departures, and 
 Where trips go matters as much as where they start.
 The origin--destination analysis (matrix in @sec-app-figures) shows the Near North Side and the Loop dominating as both origins and destinations.
 O'Hare, despite its distance, sends nearly 500,000 trips toward those two areas alone, making the airport-to-downtown corridor one of the most dependable sources of paid mileage in the network.
-Vehicles dropping passengers in outer neighbourhoods, by contrast, face a structural repositioning problem to get back to demand.
+Vehicles dropping passengers in outer neighborhoods, by contrast, face a structural repositioning problem to get back to demand.
 
 Net flow, defined as pickups minus dropoffs per hexagon, turns that imbalance into something a planner can act on: persistently positive cells need more vehicles than dropoffs return, and negative cells accumulate them.
 

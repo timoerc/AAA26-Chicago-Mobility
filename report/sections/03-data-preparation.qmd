@@ -6,14 +6,14 @@ Public portal data needs validation before use.
 Rather than applying fixed rules upfront, we worked through the dataset issue by issue, diagnosing each cause and choosing a targeted fix: missing fields, "ghost trips" with zero duration and distance, zero-distance meter cancellations, and physically implausible speeds and fares.
 The full rule set with per-rule counts is in @sec-app-prep.
 Cleaning removes just over 10 % of raw records.
-It doesn't distort the geography either: per-neighbourhood pickup counts before and after cleaning correlate at 1.0000.
+It doesn't distort the geography either: per-neighborhood pickup counts before and after cleaning correlate at 1.0000.
 
 One finding matters for revenue analysis.
 In 47.9 % of rows the billed total exceeds the sum of its components, almost always by exactly \$0.50, concentrated in card and mobile payments.
-That pattern points to an unitemised card surcharge.
+That pattern points to an unitemized card surcharge.
 We apply no correction and treat `trip_total` as the authoritative revenue figure.
 
-Not every task needs the same rigour.
+Not every task needs the same rigor.
 A trip with an odd speed or fare is still a real demand event, so **demand forecasting** uses a minimal cleaning level that keeps 99.99 % of rows, while **trip-level analyses** such as fare and duration use the full level, keeping 89.99 %.
 
 Weather and POI data needed lighter preparation: a redundant weather condition code was dropped, apparent gaps at the spring clock change were verified as correct rather than missing, and POI geometries were reduced to single coordinates and mapped to the seven categories (details in @sec-app-prep).
@@ -24,7 +24,7 @@ The models don't run on individual trips.
 Trips are aggregated to a grid, one row per *(hexagon, time bucket)* with the pickup count as the target.
 Cells with no pickups are kept as explicit zero-demand rows, so the models learn from quiet periods too.
 
-Grain is a business trade-off: finer cells localise demand better but leave more of the grid empty and harder to forecast.
+Grain is a business trade-off: finer cells localize demand better but leave more of the grid empty and harder to forecast.
 We operate at **H3 resolution 6 with 4-hour buckets**: 27 hexagons $\times$ 5,107 time buckets = 137,889 rows at a manageable 12.6 % zero-demand share.
 One step finer pushes the zero-demand share toward 50 % without a matching gain in operational precision (full sparsity comparison in @sec-app-prep).
 Section 5 assesses how coarser and finer grids affect model accuracy.

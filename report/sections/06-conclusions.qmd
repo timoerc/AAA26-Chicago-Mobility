@@ -31,9 +31,9 @@ Treat model output as a strong baseline to be overridden by hand on known event 
 ## Private or Public Charging
 
 The charging economics and the demand geography point to a mixed answer.
-The cost function penalises high charging power convexly, so charging slowly over a long window is much cheaper than short bursts at full rate.
+The cost function penalizes high charging power convexly, so charging slowly over a long window is much cheaper than short bursts at full rate.
 The agent exploited exactly this, spreading energy across the available slots and holding a modest buffer above expected demand.
-That favours private or depot charging for the bulk of the fleet's energy: it lines up with the quiet overnight window, draws at a low and cheap rate for hours, and can sit in the negative-net-flow residential zones where cars would otherwise idle.
+That favors private or depot charging for the bulk of the fleet's energy: it lines up with the quiet overnight window, draws at a low and cheap rate for hours, and can sit in the negative-net-flow residential zones where cars would otherwise idle.
 
 Public fast charging works against this cost structure, because its whole value is delivering energy quickly, which is the expensive corner of the curve.
 Our recommendation: anchor the fleet on private or depot charging near where vehicles naturally end their shifts, and use public fast charging only as an opportunistic top-up for a car that would otherwise have to leave a high-demand corridor to recharge.
@@ -51,6 +51,6 @@ Real prices and energy needs vary, so the learned policy is a proof of concept, 
 
 The most valuable next step is adding lagged demand to the forecasts.
 The previous period's actual count is usually the strongest single predictor, and its absence is the clearest gap between this setup and a production system.
-A spatially aware hexagon encoding (distance to centre, proximity to transport hubs, neighbouring demand) would let the models generalise across cells, and an event calendar would target precisely the spikes they currently miss.
-On the charging side, real day-ahead electricity prices would let the agent optimise against the tariffs a fleet actually faces.
+A spatially aware hexagon encoding (distance to center, proximity to transport hubs, neighboring demand) would let the models generalize across cells, and an event calendar would target precisely the spikes they currently miss.
+On the charging side, real day-ahead electricity prices would let the agent optimize against the tariffs a fleet actually faces.
 Beyond that, pairing the demand maps with fare-per-mile and idle-time patterns would show where drivers earn most efficiently, and an explicit repositioning model would turn the net-flow findings into concrete vehicle movements.

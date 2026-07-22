@@ -6,7 +6,7 @@ A German automotive manufacturer is launching a ride-hailing platform for US cus
 It's entering a mature market with no operational track record, so it needs data-driven guidance on how to run an electric taxi fleet in a major city.
 
 Bane & Wayne Partners (BWP) was engaged to provide that guidance.
-This report presents the work of BWP's Data Science Team, which uses historical Chicago ride-hailing data to characterise demand, forecast it, and design a cost-efficient charging strategy.
+This report presents the work of BWP's Data Science Team, which uses historical Chicago ride-hailing data to characterize demand, forecast it, and design a cost-efficient charging strategy.
 
 ## Business Goal and Data Mining Goal
 
@@ -14,10 +14,10 @@ The goal is actionable intelligence for launching and running the fleet. The ana
 
 1. **Where and when is demand concentrated?** This drives fleet positioning and driver scheduling, and tells the client where to enter the market first.
 2. **How accurately can future demand be forecast?** Better predictions cut idle time and energy waste, and raise driver earnings.
-3. **How should charging be managed to minimise cost?** Charging timed to electricity prices and predicted demand can cut operating cost sharply.
+3. **How should charging be managed to minimize cost?** Charging timed to electricity prices and predicted demand can cut operating cost sharply.
 
 The work is split into four tasks.
-Task 1 cleans the raw trips, discretises them onto Uber H3 hexagons, and enriches them with weather data.
+Task 1 cleans the raw trips, discretizes them onto Uber H3 hexagons, and enriches them with weather data.
 Task 2 uses descriptive spatial analytics to surface demand hotspots and flow patterns.
 Task 3 trains two models to forecast demand per hexagon and time bucket: a Support Vector Machine and a feedforward neural network.
 Task 4 develops a reinforcement learning agent for smart-charging policies under stochastic energy demand and dynamic pricing.

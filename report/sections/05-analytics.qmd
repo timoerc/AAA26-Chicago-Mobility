@@ -18,7 +18,7 @@ It's what an operator gets from a simple lookup schedule, so a model earns its c
 
 ### Support Vector Machine
 
-We tuned a Support Vector Machine for regression across kernel types and regularisation settings on a validation subsample; the search and its intermediate results are in @sec-app-models.
+We tuned a Support Vector Machine for regression across kernel types and regularization settings on a validation subsample; the search and its intermediate results are in @sec-app-models.
 The best configuration, an RBF kernel with C = 10, confirms that the link between weather, calendar, and demand is non-linear.
 @tbl-svm-results shows the final test-set results on 41,367 grid cells.
 
@@ -34,7 +34,7 @@ The SVR beats both baselines, but its margin over climatology is thin: MAE 24.33
 Without access to recent actual counts, most of what it can learn is the seasonal pattern climatology already encodes.
 The 5 % it adds comes from weather and calendar interactions a fixed schedule can't represent.
 The error is also unevenly distributed.
-The model is accurate in the many low-demand cells but under-predicts the busy downtown and airport hexagons where forecasts matter most, a known artefact of training on compressed log counts (decomposition in @sec-app-models).
+The model is accurate in the many low-demand cells but under-predicts the busy downtown and airport hexagons where forecasts matter most, a known artifact of training on compressed log counts (decomposition in @sec-app-models).
 
 We also tested the tuned model across coarser and finer grids, since the granularity choice itself is a business decision.
 Finer cells cut the absolute error per cell (from 73 to 31 trips MAE at 4-hour windows) simply because each cell holds fewer trips, while explained variance stays around 0.9; the full sweep is in @sec-app-models.
@@ -44,7 +44,7 @@ Census tracts (roughly 800 units instead of 27) would multiply sparsity without 
 ### Feedforward Neural Network
 
 We trained a feedforward neural network on the same grid and features, so the two models are directly comparable.
-A grid search over architectures, learning rates, and optimisers (detailed in @sec-app-models) selected a network with two hidden layers of 256 neurons, trained with the Adam optimiser.
+A grid search over architectures, learning rates, and optimizers (detailed in @sec-app-models) selected a network with two hidden layers of 256 neurons, trained with the Adam optimizer.
 @tbl-nn-results shows the final test-set results.
 
 | Model | MAE | RMSE | R$^2$ |
@@ -81,3 +81,34 @@ Both beat the seasonal schedule, but the network improves on it by roughly two a
 For an operator positioning vehicles under changing weather or on atypical weekdays, that responsiveness is the point: a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one.
 
 ## Smart Charging
+
+Forecasting tells the operator where demand will be.
+Charging determines what it costs to serve.
+We model a single electric taxi that arrives home at 2 p.m. and must leave the garage at 4 p.m.
+Instead of charging at a flat rate, an agent sets the charging power every 15 minutes, balancing two goals: keep the recharging cost low and guarantee enough energy for the upcoming shift, whose demand is unknown while charging decisions are made.
+Because the decisions are sequential and the outcome uncertain, we frame this as a reinforcement learning problem and train a Deep Q-Network (DQN).
+The agent observes the battery's state of charge (SoC) and the time slot, chooses among four power levels (off, 7.3, 14.7, or 22 kW), pays a charging cost that grows steeply with power, and takes a large penalty if the battery falls short of the realized shift demand.
+The full environment design, agent setup, and training diagnostics are in @sec-app-rl.
+
+![Learned charging policy across SoC and time slot: preferred action (off / low / medium / high) per state.](../data/raw/rl_policy_heatmap.png){#fig-policy-heatmap width=60% fig-align="center"}
+
+The learned policy (@fig-policy-heatmap) is simple enough to hand to an operations team: charge hard while the battery is low, taper as a buffer builds, switch off once SoC comfortably exceeds expected demand.
+Because a shortfall is penalized far more heavily than expensive charging, the policy is risk-averse by construction.
+It targets a small surplus above the 30 kWh mean demand rather than the mean itself.
+
+| Policy | Avg. Reward | Avg. Cost | Avg. Penalty | Avg. Final SoC (kWh) | Shortfall rate |
+|---|---|---|---|---|---|
+| DQN Agent | **-65.10** | 64.45 | 0.65 | 42.8 | **0.4 %** |
+| Always-Max | -86.99 | **86.99** | 0.00 | 56.5 | 0.0 % |
+| Random | -202.91 | 56.39 | 146.52 | 34.4 | 29.1 % |
+
+: Policy comparison over 1,000 evaluation episodes. {#tbl-rl-eval}
+
+Evaluated over 1,000 episodes (@tbl-rl-eval), the agent delivers nearly the safety of always charging at maximum, with a far better cost profile.
+Always-Max never runs short but pays roughly 35 % more in charging cost for a buffer it doesn't need, ending with an average of 56.5 kWh against a 30 kWh mean demand.
+The random policy shows the other failure mode: a 29 % shortfall rate would mean roughly one in three shifts starting under-charged.
+The DQN agent runs short in 0.4 % of episodes, and that reliability level is tunable through the shortfall penalty.
+
+For the client, the takeaway is that "charge to full" is not cost-optimal even though it feels safest.
+The learned policy could be deployed as a plain lookup table on a home charging unit, since the state space is only two-dimensional.
+Two caveats belong in the client conversation: the agent is trained on a fixed demand distribution and needs retraining if trip volumes shift, and the shortfall penalty is a dial to set according to the operator's actual tolerance for an under-charged vehicle, not a fixed technical constant.

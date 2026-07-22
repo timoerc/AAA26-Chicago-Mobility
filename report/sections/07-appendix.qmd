@@ -7,7 +7,7 @@
 | Column | Type | Description |
 |:--------------------------------|:----------------|:----------------------------|
 | `trip_id` | string | SHA-1 hash; unique journey identifier |
-| `taxi_id` | string | SHA-1 hash; anonymised vehicle identifier |
+| `taxi_id` | string | SHA-1 hash; anonymized vehicle identifier |
 | `trip_start_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
 | `trip_end_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
 | `trip_seconds` | float | Recorded journey duration in seconds |
@@ -28,7 +28,7 @@
 
 ## Weather Data
 
-The three weather zones are centred on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W). Both the elbow method and the silhouette score pointed to k = 3. @tbl-weather-vars lists the hourly variables fetched for each zone.
+The three weather zones are centered on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W). Both the elbow method and the silhouette score pointed to k = 3. @tbl-weather-vars lists the hourly variables fetched for each zone.
 
 | Variable | Unit | Description |
 |---|---|---|
@@ -54,7 +54,7 @@ The OSM query covers four tag categories (`amenity`, `shop`, `tourism`, `leisure
 | Education | 1,219 | Schools, universities, libraries |
 | Shopping | 1,084 | Supermarkets, clothing, electronics |
 | Healthcare | 469 | Hospitals, clinics, pharmacies |
-| Entertainment | 348 | Theatres, cinemas, museums |
+| Entertainment | 348 | Theaters, cinemas, museums |
 | Accommodation | 229 | Hotels, hostels |
 | Transport | 135 | Bus stops, subway entrances, ferry terminals |
 
@@ -141,11 +141,11 @@ Grain sets a trade-off: finer units capture local variation but leave more cells
 
 ## SVR Kernel and Hyperparameter Search
 
-A Support Vector Machine for regression (SVR) fits a function that stays within a tolerance band around the observed values while remaining as smooth as possible. The kernel sets the shape of that function: linear allows only straight-line relationships, polynomial curved ones, and the Radial Basis Function (RBF) highly flexible non-linear relationships. Following the prescribed approach, we start simple and add complexity.
+A Support Vector Machine for regression (SVR) fits a function that stays within a tolerance band around the observed values while remaining as smooth as possible. The kernel sets the shape of that function: linear allows only straight-line relationships, polynomial curved ones, and the Radial Basis Function (RBF) highly flexible non-linear relationships. We start simple and add complexity, so that any gain can be attributed to the added flexibility rather than assumed.
 
 Three settings are tuned alongside the kernel: C, how closely the model fits the training data; epsilon, the width of the no-penalty tolerance band; and gamma, how far each observation's influence reaches (RBF and polynomial only). SVR scales poorly with training set size, so tuning ran on a random subsample of 8,000 observations, with the best configuration refit on 30,000 rows for final evaluation.
 
-| Kernel type | Best regularisation | Validation MAE |
+| Kernel type | Best regularization | Validation MAE |
 |---|---|---|
 | Linear | C = 1.0 | 39.58 trips |
 | Polynomial | C = 10.0 | 29.59 trips |
@@ -182,7 +182,7 @@ Finer spatial units lower the absolute error because each hexagon holds fewer tr
 
 ## Neural Network Search and Diagnostics
 
-The grid search covers hidden layer sizes ([64, 64], [128, 64], [256, 256] and [64, 64, 64, 64]), dropout (0 %, 10 %), learning rate (0.1, 0.01, 0.001) and optimiser (SGD, Adam). Each candidate trains for up to 200 iterations, stopping early after 20 iterations without validation improvement. The winning configuration (two hidden layers of 256 neurons each, no dropout, learning rate 0.001, Adam) is retrained from scratch on the combined training and validation data.
+The grid search covers hidden layer sizes ([64, 64], [128, 64], [256, 256] and [64, 64, 64, 64]), dropout (0 %, 10 %), learning rate (0.1, 0.01, 0.001) and optimizer (SGD, Adam). Each candidate trains for up to 200 iterations, stopping early after 20 iterations without validation improvement. The winning configuration (two hidden layers of 256 neurons each, no dropout, learning rate 0.001, Adam) is retrained from scratch on the combined training and validation data.
 
 Holding that architecture fixed, we compare three activation functions (@tbl-nn-activations). Tanh edges out ReLU, and both are far ahead of sigmoid, which never trains to a usable error level because of gradient saturation: its neurons produce near-constant outputs across much of the input range, which stalls learning in deeper networks. The final model uses ReLU; the gap to tanh is under two trips of MAE, small enough to fall within run-to-run variation on a single validation split.
 
@@ -195,3 +195,46 @@ Holding that architecture fixed, we compare three activation functions (@tbl-nn-
 : Validation error by activation function for the best network architecture. {#tbl-nn-activations}
 
 ![Training and validation loss curves for the final neural network model.](../data/raw/nn_training_curve.png){width=80% fig-align="center"}
+
+# Smart Charging Environment and Training {#sec-app-rl}
+
+## Markov Decision Process Design
+
+**State space.** The state is a 2-dimensional vector: the current SoC in kWh, and the current 15-minute slot index, normalized to $[0,1]$. Two components are sufficient because the charging window is fixed (2 hours, 8 slots) and the only quantity that evolves within it is the battery level; calendar or weather features would be redundant, since none of them change within a single 2-hour window. Keeping the state low-dimensional also keeps the learned policy interpretable as a simple heatmap over SoC and time slot (@fig-policy-heatmap), which matters for explaining the agent's behavior to the client.
+
+**Action space.** Charging power is discretized into four levels (off, low, medium, high: 0, 7.3, 14.7, 22 kW) rather than allowing continuous output. The assignment explicitly permits this simplification, and discrete actions keep DQN applicable without the added complexity of a continuous-control algorithm such as DDPG, which would need substantially more tuning for a 4-way decision that a home charging unit would realistically only support in discrete steps anyway.
+
+**Reward function.** Every slot incurs a charging cost that grows exponentially in power, $c \cdot e^{p_t / p_{\max}}$, reflecting that fast charging draws a disproportionate premium on real electricity tariffs (modeled here on average ComEd afternoon supply prices) and stresses the battery more than slow charging. At the end of the window, a shortfall between the realized stochastic demand ($\mathcal{N}(30, 5^2)$ kWh) and the final SoC is penalized at a coefficient of 100 per kWh missing, deliberately far above the cost scale of charging itself, so that the agent never learns to gamble on running out of energy to save a few cents. @tbl-reward-table summarizes the resulting reward per action, evaluated at the reference cost coefficient of the simulation.
+
+| Action | Label | Power (kW) | Energy per slot (kWh) | Cost this slot |
+|---|---|---|---|---|
+| 0 | Off | 0.0 | 0.00 | 4.00 |
+| 1 | Low | 7.3 | 1.83 | 5.58 |
+| 2 | Medium | 14.7 | 3.67 | 7.80 |
+| 3 | High | 22.0 | 5.50 | 10.87 |
+
+: Charging cost by action, before any shortfall penalty. {#tbl-reward-table}
+
+**A note on scaling.** An earlier version of the cost function used $c \cdot e^{p_t}$ directly. Because $p_t$ ranges up to 22, this exploded numerically and made the reward signal uninformative for the agent. Normalizing the exponent by $p_{\max}$ keeps the cost in a well-behaved range while preserving the intended convexity: charging faster remains disproportionately expensive, just not to the point of destabilizing training.
+
+## Agent: Deep Q-Network
+
+We use a Deep Q-Network rather than tabular Q-learning or policy-gradient methods, for three reasons tied to this problem's structure. First, the action space is small and discrete (four choices), which is exactly the regime Q-learning-based methods are strongest in; policy-gradient methods (REINFORCE, Actor-Critic) add complexity that buys nothing here. Second, the state space is continuous (SoC is a real-valued kWh amount), so tabular Q-learning would require discretizing it and lose precision at the SoC boundaries near the shortfall threshold. Third, DQN's experience replay lets the agent learn from individual 15-minute transitions rather than waiting for full episodes to complete, which is more sample-efficient than Monte Carlo approaches given the small number of decision points (8) per episode.
+
+The Q-network is a small feedforward network with two hidden layers (12,932 parameters total), trained with a target network and soft updates ($\tau = 0.0005$) for stability, and an $\varepsilon$-greedy exploration schedule decaying from 1.0 to 0.001 over training. Training ran for 5,000 episodes (40,000 transitions).
+
+## Training Behavior
+
+![Training curves: episode reward, final SoC, cost and penalty over 5,000 training episodes (100-episode moving average).](../data/raw/rl_training_curves.png){#fig-training-curves width=90% fig-align="center"}
+
+@fig-training-curves shows the training curves. Reward and shortfall penalty do not decline monotonically: several stretches (around episodes 500 and 1,000) show a spike in average penalty, where the agent temporarily under-charges before correcting. This reflects the exploration-driven trade-off inherent to $\varepsilon$-greedy DQN. The agent must occasionally under-charge to learn the shape of the penalty, since the shortfall penalty is only observed at the end of an episode. By the later episodes, the average penalty converges to zero while average final SoC stabilizes above the 30 kWh demand mean, indicating the agent has learned a conservative buffer against demand uncertainty rather than charging to the mean exactly.
+
+## Evaluation Distributions
+
+![Distributions over 1,000 evaluation episodes: total reward, final SoC, and cost vs. penalty, compared across DQN Agent, Always-Max, and Random.](../data/raw/rl_policy_evaluation.png){#fig-policy-evaluation width=95% fig-align="center"}
+
+## Example Episode
+
+![Example evaluation episode: SoC, charging power, and cost per 15-minute slot from 2 p.m. to 4 p.m.](../data/raw/rl_episode_trace.png){#fig-episode-trace width=90% fig-align="center"}
+
+@fig-episode-trace traces one evaluation episode slot by slot: SoC rises from an initial value in the 10--15 kWh range at 2 p.m. to a final SoC of 44.2 kWh at 4 p.m., against a realized demand draw of 24.4 kWh, leaving a comfortable 19.8 kWh surplus at a total charging cost of 66.33. This single trace should not be read as typical (the realized demand here happened to fall below the mean), but it illustrates the slot-by-slot decision pattern: higher power early in the window while SoC is low, tapering off as the buffer builds.
