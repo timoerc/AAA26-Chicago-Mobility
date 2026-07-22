@@ -175,3 +175,171 @@ Both models beat the seasonal schedule, but the SVR only marginally, while the n
 For a fleet operator positioning vehicles under changing weather or on atypical weekdays that difference is the whole point: a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one.
 
 ## Smart Charging
+
+### Problem Framing
+
+Beyond forecasting where demand arises, an electrified fleet must be operated: every vehicle
+that returns home has to recharge before its next shift, and the way charging is scheduled
+directly affects operating cost. We model a single electric taxi that arrives home at 2 p.m.
+and must leave the garage at 4 p.m. Instead of a flat charging rate, the client requested an
+intelligent agent that sets the charging power every 15 minutes, trading off two competing
+objectives: keep the recharging cost low, and guarantee enough energy for the upcoming shift,
+whose demand is unknown at the time charging decisions are made.
+
+This is a sequential decision problem under uncertainty, which is why we frame it as a
+reinforcement learning task rather than a one-shot optimisation: the agent observes the
+battery's state of charge (SoC) at each 15-minute step and must decide the charging power for
+that step alone, without knowing in advance how much energy the next shift will actually
+require.
+
+### Markov Decision Process Design
+
+Casting the charging problem as an MDP requires committing to a state representation, an
+action set, and a reward signal. Each choice has consequences for what the agent can learn and
+how directly the result can be explained to a non-technical client, so we document them here
+individually.
+
+**State space.** The state is a 2-dimensional vector: the current SoC in kWh, and the current
+15-minute slot index, normalised to $[0,1]$. Two components are sufficient because the
+charging window is fixed (2 hours, 8 slots) and the only quantity that evolves within it is the
+battery level; adding calendar or weather features here would be redundant, since none of them
+change within a single 2-hour window. Keeping the state low-dimensional also keeps the learned
+policy interpretable as a simple heatmap over SoC and time slot (@fig-policy-heatmap), which
+matters for explaining the agent's behaviour to the client.
+
+**Action space.** We discretise charging power into four levels — off, low, medium, high (0,
+7.3, 14.7, 22 kW) — rather than allowing continuous power output. The assignment explicitly
+permits this simplification, and discrete actions keep DQN applicable without the added
+complexity of a continuous-control algorithm (e.g. DDPG), which would need substantially more
+tuning for a 4-way decision that a home charging unit would realistically only support in
+discrete steps in practice.
+
+**Reward function.** Every slot incurs a charging cost that grows exponentially in power,
+$c \cdot e^{p_t / p_{\max}}$, reflecting that fast charging draws a disproportionate premium on
+real electricity tariffs (modelled here on average ComEd afternoon supply prices) and stresses
+the battery more than slow charging. At the end of the window, a shortfall between the realised
+stochastic demand ($\mathcal{N}(30, 5^2)$ kWh) and the final SoC is penalised at a coefficient of
+100 per kWh missing — deliberately far above the cost scale of charging itself, so that the
+agent never learns to gamble on running out of energy to save a few cents. @tbl-reward-table
+summarises the resulting reward per action, evaluated at the arbitrary reference cost
+coefficient of the simulation.
+
+| Action | Label | Power (kW) | Energy per slot (kWh) | Cost this slot |
+|---|---|---|---|---|
+| 0 | Off | 0.0 | 0.00 | 4.00 |
+| 1 | Low | 7.3 | 1.83 | 5.58 |
+| 2 | Medium | 14.7 | 3.67 | 7.80 |
+| 3 | High | 22.0 | 5.50 | 10.87 |
+
+: Charging cost by action, before any shortfall penalty. {#tbl-reward-table}
+
+**A note on scaling.** An earlier version of the cost function used $c \cdot e^{p_t}$ directly.
+Because $p_t$ ranges up to 22, this exploded numerically and made the reward signal
+uninformative for the agent. Normalising the exponent by $p_{\max}$, as shown above, keeps the
+cost in a well-behaved range while preserving the intended convexity — charging faster remains
+disproportionately expensive, just not to the point of destabilising training.
+
+### Agent: Deep Q-Network
+
+We use a Deep Q-Network (DQN) rather than tabular Q-learning or policy-gradient methods, for
+three reasons directly tied to this problem's structure. First, the action space is small and
+discrete (four choices), which is exactly the regime Q-learning-based methods are strongest in;
+policy-gradient methods (REINFORCE, Actor-Critic) add complexity that buys nothing here.
+Second, the state space is continuous (SoC is a real-valued kWh amount), so tabular Q-learning
+would require discretising it and lose precision at the SoC boundaries near the shortfall
+threshold. Third, DQN's experience replay lets the agent learn from individual 15-minute
+transitions rather than waiting for full episodes to complete, which is more sample-efficient
+than Monte Carlo approaches given the small number of decision points (8) per episode.
+
+The Q-network is a small feedforward network with two hidden layers (12,932 parameters total),
+trained with a target network and soft updates ($\tau = 0.0005$) for stability, and an
+$\varepsilon$-greedy exploration schedule decaying from 1.0 to 0.001 over training. Training ran
+for 5,000 episodes (40,000 transitions).
+
+### Training Behaviour
+
+![Training curves: episode reward, final SoC, cost and penalty over 5,000 training episodes (100-episode moving average).](../data/raw/rl_training_curves.png){#fig-training-curves width=90% fig-align="center"}
+
+@fig-training-curves shows the training curves. Reward and shortfall penalty do not decline
+monotonically: several stretches (around episodes 500 and 1,000) show a spike in average
+penalty, where the agent temporarily under-charges before correcting. This reflects the
+exploration-driven trade-off inherent to $\varepsilon$-greedy DQN — the agent must occasionally
+under-charge to learn the shape of the penalty, since the shortfall penalty is only observed at
+the end of an episode. By the later episodes, the average penalty converges to zero while
+average final SoC stabilises above the 30 kWh demand mean, indicating the agent has learned a
+conservative buffer against demand uncertainty rather than charging to the mean exactly.
+
+### Learned Policy
+
+![Learned charging policy across SoC and time slot: preferred action (off / low / medium / high) per state.](../data/raw/rl_policy_heatmap.png){#fig-policy-heatmap width=70% fig-align="center"}
+
+@fig-policy-heatmap visualises the agent's preferred action across the full state space
+(SoC on one axis, time slot on the other). The policy is intuitive from an operations
+standpoint: at low SoC the agent charges at high power regardless of the time slot remaining,
+since running out of runway to reach a safe SoC is the single most expensive outcome available
+to it (the shortfall penalty dominates any charging cost). As SoC rises, the agent shifts to
+lower power levels and eventually switches off entirely once SoC comfortably exceeds the
+expected demand. Because the reward is asymmetric — a large one-sided penalty for shortfall
+versus a comparatively small, smoothly increasing cost for charging — the policy is
+risk-averse by construction: it consistently charges to a small surplus above the 30 kWh mean
+rather than charging exactly to the expected demand, which would leave a roughly 50% chance of
+a shortfall.
+
+### Evaluation Against Baselines
+
+We evaluate the trained agent against two baselines over 1,000 episodes each, to average out
+the stochastic demand draw: **Always-Max**, which charges at 22 kW every slot regardless of
+need, and **Random**, which selects actions uniformly. @tbl-rl-eval reports the results.
+
+| Policy | Avg. Reward | Avg. Cost | Avg. Penalty | Avg. Final SoC (kWh) | Shortfall rate |
+|---|---|---|---|---|---|
+| DQN Agent | **-65.10** | 64.45 | 0.65 | 42.8 | **0.4 %** |
+| Always-Max | -86.99 | **86.99** | 0.00 | 56.5 | 0.0 % |
+| Random | -202.91 | 56.39 | 146.52 | 34.4 | 29.1 % |
+
+: Policy comparison over 1,000 evaluation episodes. {#tbl-rl-eval}
+
+![Distributions over 1,000 evaluation episodes: total reward, final SoC, and cost vs. penalty, compared across DQN Agent, Always-Max, and Random.](../data/raw/rl_policy_evaluation.png){#fig-policy-evaluation width=95% fig-align="center"}
+
+The DQN agent dominates on total reward, the metric that matters operationally because it
+combines both objectives. Always-Max never runs short, but pays for a permanent safety margin
+it does not need — it ends slots with an average SoC of 56.5 kWh against a 30 kWh mean demand,
+paying roughly 35% more in charging cost than the DQN agent for a shortfall guarantee the DQN
+agent already delivers at 99.6% reliability. Random illustrates the downside of no policy at
+all: a 29.1% shortfall rate would mean roughly one in three shifts starting under-charged,
+which is not an acceptable outcome for a ride-hailing operator's service levels. The DQN agent
+sits close to Always-Max's safety with a cost profile much closer to Random's — it has learned
+to charge no more than the risk of shortfall requires.
+
+### Example Episode
+
+![Example evaluation episode: SoC, charging power, and cost per 15-minute slot from 2 p.m. to 4 p.m.](../data/raw/rl_episode_trace.png){#fig-episode-trace width=90% fig-align="center"}
+
+@fig-episode-trace traces one evaluation episode slot-by-slot: SoC rises from an initial value
+in the 10–15 kWh range at 2 p.m. to a final SoC of 44.2 kWh at 4 p.m., against a realised demand
+draw of 24.4 kWh — a comfortable 19.8 kWh surplus at a total charging cost of 66.33. This single
+trace should not be read as typical (the realised demand here happened to fall below the mean),
+but it illustrates the slot-by-slot decision pattern: higher power early in the window while SoC
+is low, tapering off as the buffer builds.
+
+### Implications for the Client
+
+For the fleet operator, the practical takeaway is that a static "charge to full" policy is not
+cost-optimal even though it is the safest option available: it is more expensive to run at scale
+than a policy that models demand uncertainty explicitly, without a meaningfully lower risk of an
+under-charged vehicle leaving the garage. The learned policy's shape — charge aggressively only
+when SoC is genuinely low, taper as a buffer builds — could be implemented directly as a
+lookup table on the vehicle's home charging unit, since the state space is only two-dimensional
+and the policy is stable across it.
+
+Two caveats are worth stating plainly to the client. First, the agent was trained on a single,
+fixed demand distribution ($\mathcal{N}(30, 5)$); if realised trip demand systematically shifts
+(e.g. due to a new city contract or a seasonal change in ride volume), the policy would need
+retraining on updated demand data, since it has not learned to infer demand from context, only
+to hedge against a fixed distribution. Second, the penalty coefficient of 100 kWh$^{-1}$ was
+chosen to strongly discourage shortfalls; a lower coefficient would shift the policy toward
+cheaper, riskier charging, and the client should treat this coefficient as a dial to be set
+according to their actual tolerance for an under-charged vehicle at shift start, not as a fixed
+technical parameter. A brief sensitivity sweep over this coefficient would be a natural
+next step before deployment, and is available on request.
+
