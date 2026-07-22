@@ -1,90 +1,31 @@
 # Data Description
 
-Three data sources feed the analysis: Chicago taxi trip records, hourly weather, and OpenStreet Map point-of-interest. 
+Three data sources feed the analysis: Chicago taxi trip records, hourly weather, and OpenStreetMap points of interest.
 Together they cover demand, environmental context, and urban structure.
+Full data dictionaries are in @sec-app-data.
 
 ## Taxi Trip Data
 
-Downloaded from the Chicago Data Portal on 10 May 2026, the dataset holds every taxi trip from January 2024 to early May 2026:
- **14,985,679 trips** across 21 columns. 
-Seven temporal features (date, hour, day of week, month, year, week, and whether a day is a weekened) are derived at load time, bringing the working total to 28.
+Downloaded from the Chicago Data Portal on 10 May 2026, the dataset holds every recorded taxi trip from January 2024 to early May 2026: **14,985,679 trips** across 21 columns, extended by seven derived temporal features at load time.
 
-@tbl-taxi-columns lists the key fields.
-
- | Column | Type | Description |
-|:--------------------------------|:----------------|:----------------------------|
-| `trip_id` | string | SHA-1 hash; unique journey identifier |
-| `taxi_id` | string | SHA-1 hash; anonymised vehicle identifier |
-| `trip_start_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
-| `trip_end_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
-| `trip_seconds` | float | Recorded journey duration in seconds |
-| `trip_miles` | float | Recorded journey distance in miles |
-| `pickup_census_tract` | float | Census tract of pickup ($\approx 54$% missing) |
-| `dropoff_census_tract` | float | Census tract of dropoff ($\approx 56$% missing) |
-| `pickup_community_area` | float | Community area of pickup (0.05% missing) |
-| `dropoff_community_area` | float | Community area of dropoff (7.2% missing) |
-| `fare` | float | Metered fare in USD |
-| `tips` | float | Tip amount in USD |
-| `trip_total` | float | Total charge billed to the passenger |
-| `payment_type` | string | Credit card, cash, mobile, etc. |
-| `company` | string | Taxi company name |
-| `pickup_centroid_lat/lon` | float | Centroid of the pickup census tract |
-| `dropoff_centroid_lat/lon` | float | Centroid of the dropoff census tract |
-
-: Core fields of the Chicago taxi trip dataset. {#tbl-taxi-columns}
-
-Three portal design choices matter downstream. 
-Both IDs are SHA-1 hashes, so there's no personally identifiable information.
-All timestamps are rounded to the nearest 15-minute interval for privacy. 
-This caps temporal precision at 15-minute bins but doesn't affect hourly or 4-hourly aggregations.
-And location is given only at the census tract level:
-with roughly 800 tracts in Chicago  the spatial grain is coarser than GPS, but each tract's centroid lat/lon supports spatial joins.
+Three portal design choices matter downstream.
+Driver and trip IDs are SHA-1 hashes, so there's no personally identifiable information.
+All timestamps are rounded to the nearest 15 minutes for privacy, which caps temporal precision but doesn't affect hourly or 4-hourly aggregation.
+And location is reported only at census-tract level.
+With roughly 800 tracts in Chicago the spatial grain is coarser than GPS, but each tract's centroid coordinates support spatial joins.
 
 ## Weather Data
-Hourly weather data was collected from Open-Meteo Historical Archive API [@openmeteo] for the same date range as the taxi data (January 2024 - May 2026).
-Because Chicago spans roughly 600 km$^2$ and exhibits meaningful microclimatic variation between lakefront, the urban core, and the far northwest, a single weather station would be inadequate representative.
-We therefore determined three representative weather zones by appliying K-means clustering (k = 3) to all taxi pickup coordinates, placing zone centroids where demand activity is the highest.
-The resulting zones are centred on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W).
 
-Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range (January 2024 - May 2026).
-Chicago spans about 600 km² with real microclimatic variation between lakefront, the urban core, and the far northwest, so one weather station won't represent it.
-We defined three representative weather zones by K-means clustering (k = 3) on all pickup coordinates, placing zone centroids where demand activity is densest:
-the downtown core (41.886°N, 87.629°W), O'Hare (41.979°N, 87.903°W), and the South Side (41.785°N, 87.750°W).
-
-| Variable | Unit | Description |
-|---|---|---|
-| `temperature_2m` | $^\circ$C | Air temperature at 2 m height |
-| `apparent_temperature` | $^\circ$C | Feels-like temperature (wind chill / heat index) |
-| `precipitation` | mm | Total precipitation |
-| `rain` | mm | Liquid precipitation |
-| `snowfall` | cm | Snowfall accumulation |
-| `snow_depth` | cm | Snow depth on ground |
-| `windspeed_10m` | km/h | Wind speed at 10 m |
-| `windgusts_10m` | km/h | Wind gust speed at 10 m |
-| `cloud_cover` | % | Fractional cloud cover |
- 
-: Hourly weather variables fetched from Open-Meteo. {#tbl-weather-vars}
-
-The dataset contains **61,335 observations** (~20,445 hours for each zone).
-Temperatures range from $-26.8$ $^\circ$C to 36.3 $^\circ$C, with appraent temperatures as low as $-32.9$ $^\circ$C due to wind chill, which is consistent with Chicago's continental climate. Median hourly precipitation is near zero while median cloud cover stands at 83 %, reflecting the city's characteristically overcast conditions.
+Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range.
+Chicago spans about 600 km² with real microclimatic differences between the lakefront, the urban core, and the far northwest, so a single weather station won't represent it.
+We defined three weather zones by K-means clustering on all pickup coordinates, placing zone centroids where demand is densest: the downtown core, O'Hare, and the South Side.
+The result is **61,335 hourly observations** (~20,445 per zone) across nine variables.
+Temperatures range from $-26.8$ °C to 36.3 °C, with apparent lows of $-32.9$ °C from wind chill.
+That's Chicago's continental climate at work, and a plausible driver of taxi demand.
 
 ## Point-of-Interest Data
-POI data comes from OpenStreetMap via`osmnx` [@boeing2017osmnx],querying four tag categories for Chicago: `amenity`, `shop`, `tourism`, and `leisure`.
-The raw tags (e.g. restaurant, bus_stop, hospital) are too fine-grained to use directly, since many are too sparse for stable per-hexagon counts, and their demand signals overlaps (e.g. café and bar both mean nightlife). 
-We collapsed them into seven demand-relevant categories, grouping tags with similar expected demand timing and dropping tags too niche to matter. 
-After converting  polygons to centroids and discarding unmapped types, **9,124 POIs** remain (@tbl-poi-categories).
 
-| Category | Count | Examples |
-|---|---|---|
-| Food & Nightlife | 5,640 | Restaurants, bars, cafés, fast food |
-| Education | 1,219 | Schools, universities, libraries |
-| Shopping | 1,084 | Supermarkets, clothing, electronics |
-| Healthcare | 469 | Hospitals, clinics, pharmacies |
-| Entertainment | 348 | Theatres, cinemas, museums |
-| Accommodation | 229 | Hotels, hostels |
-| Transport | 135 | Bus stops, subway entrances, ferry terminals |
- 
-: POI counts by functional category (OpenStreetMap, Chicago). {#tbl-poi-categories}
- 
-POIs are static: they don't vary over time and aren't counted as demand. 
-They are aggregated to H3 resolution 8 as per-category counts and joined into the feature matrix as a proxy for how much each cell attracts trips.
+POI data comes from OpenStreetMap via `osmnx` [@boeing2017osmnx].
+Raw tags (restaurant, bus_stop, hospital, ...) are too fine-grained and overlapping to use directly, so we collapsed them into seven demand-relevant categories, from food & nightlife (5,640 locations) down to transport (135), leaving **9,124 POIs** after reducing polygons to centroids.
+POIs are static: they don't vary over time and aren't counted as demand.
+Aggregated per hexagon as category counts, they proxy how strongly each cell attracts trips.

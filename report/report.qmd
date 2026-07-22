@@ -32,3 +32,9 @@ date: 2026-07-26 # Date of submission
 {{< include sections/05-analytics.qmd >}}
 
 {{< include sections/06-conclusions.qmd >}}
+
+{{< pagebreak >}}
+
+\appendix
+
+{{< include sections/07-appendix.qmd >}}

@@ -1,0 +1,197 @@
+# Data Dictionaries {#sec-app-data}
+
+## Taxi Trip Data
+
+@tbl-taxi-columns lists the key fields of the trip dataset. Seven temporal features (date, hour, day of week, month, year, week, weekend flag) are derived at load time, bringing the working total to 28 columns.
+
+| Column | Type | Description |
+|:--------------------------------|:----------------|:----------------------------|
+| `trip_id` | string | SHA-1 hash; unique journey identifier |
+| `taxi_id` | string | SHA-1 hash; anonymised vehicle identifier |
+| `trip_start_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
+| `trip_end_timestamp` | datetime (UTC$-6$) | Rounded to the nearest 15 minutes |
+| `trip_seconds` | float | Recorded journey duration in seconds |
+| `trip_miles` | float | Recorded journey distance in miles |
+| `pickup_census_tract` | float | Census tract of pickup ($\approx 54$% missing) |
+| `dropoff_census_tract` | float | Census tract of dropoff ($\approx 56$% missing) |
+| `pickup_community_area` | float | Community area of pickup (0.05% missing) |
+| `dropoff_community_area` | float | Community area of dropoff (7.2% missing) |
+| `fare` | float | Metered fare in USD |
+| `tips` | float | Tip amount in USD |
+| `trip_total` | float | Total charge billed to the passenger |
+| `payment_type` | string | Credit card, cash, mobile, etc. |
+| `company` | string | Taxi company name |
+| `pickup_centroid_lat/lon` | float | Centroid of the pickup census tract |
+| `dropoff_centroid_lat/lon` | float | Centroid of the dropoff census tract |
+
+: Core fields of the Chicago taxi trip dataset. {#tbl-taxi-columns}
+
+## Weather Data
+
+The three weather zones are centred on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W). Both the elbow method and the silhouette score pointed to k = 3. @tbl-weather-vars lists the hourly variables fetched for each zone.
+
+| Variable | Unit | Description |
+|---|---|---|
+| `temperature_2m` | $^\circ$C | Air temperature at 2 m height |
+| `apparent_temperature` | $^\circ$C | Feels-like temperature (wind chill / heat index) |
+| `precipitation` | mm | Total precipitation |
+| `rain` | mm | Liquid precipitation |
+| `snowfall` | cm | Snowfall accumulation |
+| `snow_depth` | cm | Snow depth on ground |
+| `windspeed_10m` | km/h | Wind speed at 10 m |
+| `windgusts_10m` | km/h | Wind gust speed at 10 m |
+| `cloud_cover` | % | Fractional cloud cover |
+
+: Hourly weather variables fetched from Open-Meteo. {#tbl-weather-vars}
+
+## Point-of-Interest Data
+
+The OSM query covers four tag categories (`amenity`, `shop`, `tourism`, `leisure`). Raw tags are collapsed into seven demand-relevant categories via a lookup table, grouping tags with similar expected demand timing and dropping types too niche to matter (@tbl-poi-categories).
+
+| Category | Count | Examples |
+|---|---|---|
+| Food & Nightlife | 5,640 | Restaurants, bars, cafés, fast food |
+| Education | 1,219 | Schools, universities, libraries |
+| Shopping | 1,084 | Supermarkets, clothing, electronics |
+| Healthcare | 469 | Hospitals, clinics, pharmacies |
+| Entertainment | 348 | Theatres, cinemas, museums |
+| Accommodation | 229 | Hotels, hostels |
+| Transport | 135 | Bus stops, subway entrances, ferry terminals |
+
+: POI counts by functional category (OpenStreetMap, Chicago). {#tbl-poi-categories}
+
+# Data Preparation Detail {#sec-app-prep}
+
+## Missing Values
+
+Different fields are missing for different reasons, so each gets its own treatment (@tbl-missing).
+
+| Field | Missing | Cause | Treatment |
+|---|---|---|---|
+| Timestamps | < 0.01 % | Fall in the autumn DST fold, where one hour repeats and the occurrence is ambiguous | Remove |
+| Drop-off community area | 7.2 % | Drop-off outside the 77 official community areas (suburban) | Recover via spatial join where inside the city; retain suburban trips unassigned |
+| Trip duration | small | Not reported but derivable | Impute from end − start timestamp |
+| Trip distance | small | Not reported | Estimate with great-circle distance (understates road distance) |
+| Vehicle ID | 8 records | Unattributable to any taxi | Remove |
+
+: Missing-value handling by field. {#tbl-missing}
+
+## Consistency Checks
+
+Some records are present but aren't real journeys. **Ghost trips** have zero seconds, identical start and end time, and identical start and end location, which looks like a meter switched on and off. All four conditions must hold, so genuine short trips survive; we remove the **153,078** records that qualify (~1 %). A further **1,014,515 trips** (6.8 %) log zero distance despite positive duration, with a median of 46 seconds and a quarter under 6 seconds.
+These are overwhelmingly meter cancellations or GPS failures rather than real journeys, and all are excluded. We also confirmed there are no end-before-start inversions and no duplicate trip IDs.
+
+## Outlier Removal
+
+After dropping non-journeys, we remove physically implausible values using two derived metrics, average speed and fare per mile (@tbl-outlier-rules).
+
+| Criterion | Records removed | Share of dataset |
+|---|---|---|
+| Non-positive fare | 5,243 | 0.04 % |
+| Distance exceeding 100 miles | 960 | 0.01 % |
+| Duration exceeding 3 hours | 11,629 | 0.08 % |
+| Average speed above 70 mph | 6,663 | 0.05 % |
+| Average speed below 2 mph | 155,478 | 1.13 % |
+| Fare below \$2 per mile | 28,537 | 0.21 % |
+| Fare above \$100 per mile | small | < 0.01 % |
+
+: Outlier removal criteria applied to the taxi trip dataset. {#tbl-outlier-rules}
+
+## Cleaning Levels
+
+| Level | What is removed | Rows retained |
+|---|---|---|
+| Demand (minimal) | DST-ambiguous timestamps | 14,984,551 (99.99 %) |
+| Trip (full) | Above, plus missing vehicle ID, ghost trips, zero-distance trips, and speed/fare outliers | 13,485,728 (89.99 %) |
+
+: Rows retained under each cleaning level. {#tbl-cleaning-ledger}
+
+## Weather and POI Preparation
+
+**Condition codes.** The raw weather data carries a WMO condition code (0--99). Treating it as a number implies a false ordering (code 95 isn't "95$\times$ worse" than code 1), and only three conditions actually appear: clear, rain, snow. Since rain and snow already have their own numeric columns, the code adds nothing and is dropped.
+
+**Clock-change gaps.** Each zone shows a one-hour gap on spring-forward days (2024-03-10, 2025-03-09). The 02:00 hour doesn't exist when clocks jump 01:00 → 03:00, so the gap is correct and no imputation is needed.
+
+**POI geometry.** The OSM query returns points, polygons, and lines. All non-point features are reduced to their centroid, so every POI is a single coordinate. Each is mapped to one of seven functional categories via a lookup table, with unmapped types discarded; the final 9,124 POIs are assigned to the hexagon containing their coordinate.
+
+## Granularity and Sparsity
+
+Grain sets a trade-off: finer units capture local variation but leave more cells at or near zero, which is harder to forecast. @tbl-sparsity shows the effect.
+
+| Spatial unit | Time bucket | Grid cells | Zero-demand share |
+|---|---|---|---|
+| H3 resolution 5 (large hexagons) | 1 hour | 163,400 | 5.8 % |
+| H3 resolution 6 | 1 hour | 551,475 | 26.8 % |
+| H3 resolution 6 | 4 hours | 137,889 | 12.6 % |
+| H3 resolution 7 | 4 hours | 653,696 | 49.2 % |
+
+: Zero-demand share across spatial and temporal granularities. {#tbl-sparsity}
+
+# Additional Descriptive Figures {#sec-app-figures}
+
+![H3 hexagonal grid overlaid on Chicago community areas at resolutions 6, 7, and 8.](../data/raw/h3_grid_chicago.png){width=90% fig-align="center"}
+
+![Distribution of trip duration, distance, fare, tips, total cost, and inter-trip idle time across the full dataset. Distributions are clipped at the 99th percentile so airport flat rates and exceptional idle gaps don't distort the axes.](../data/raw/trip_metric_distributions.png){width=90% fig-align="center"}
+
+![Pickup demand by 4-hour time bucket, covering the full 24-hour cycle.](../data/raw/demand_4h_buckets.png){width=90% fig-align="center"}
+
+![Origin--destination matrix for the top 10 community areas by total trip volume.](../data/raw/od_matrix_community.png){width=90% fig-align="center"}
+
+# Model Tuning and Diagnostics {#sec-app-models}
+
+## SVR Kernel and Hyperparameter Search
+
+A Support Vector Machine for regression (SVR) fits a function that stays within a tolerance band around the observed values while remaining as smooth as possible. The kernel sets the shape of that function: linear allows only straight-line relationships, polynomial curved ones, and the Radial Basis Function (RBF) highly flexible non-linear relationships. Following the prescribed approach, we start simple and add complexity.
+
+Three settings are tuned alongside the kernel: C, how closely the model fits the training data; epsilon, the width of the no-penalty tolerance band; and gamma, how far each observation's influence reaches (RBF and polynomial only). SVR scales poorly with training set size, so tuning ran on a random subsample of 8,000 observations, with the best configuration refit on 30,000 rows for final evaluation.
+
+| Kernel type | Best regularisation | Validation MAE |
+|---|---|---|
+| Linear | C = 1.0 | 39.58 trips |
+| Polynomial | C = 10.0 | 29.59 trips |
+| RBF | C = 10.0 | **25.51 trips** |
+
+: Best SVR configuration per kernel type, scored on the validation set. {#tbl-svm-kernels}
+
+Moving from linear (MAE 39.58) to RBF (MAE 25.51) shows the value of flexibility: the link between weather, calendar and demand is non-linear, and the RBF kernel captures that curvature. The RBF kernel with C = 10 and epsilon = 0.1 goes into final evaluation.
+
+## SVR Error Decomposition
+
+| Demand level (trips per window) | MAE | Observations |
+|---|---|---|
+| 0--1 | 0.68 | 7,580 |
+| 1--5 | 1.70 | 7,035 |
+| 5--20 | 3.81 | 10,328 |
+| 20--100 | 11.91 | 8,725 |
+| 100+ | 109.89 | 7,699 |
+
+: SVR test-set error decomposed by demand level. {#tbl-svm-error}
+
+## SVR Performance Across Resolutions
+
+| Hexagon size | Time window | MAE | R$^2$ |
+|---|---|---|---|
+| Large (resolution 5, 8 cells) | 1 hour | 24.57 | 0.860 |
+| Large (resolution 5, 8 cells) | 4 hours | 73.37 | 0.938 |
+| Medium (resolution 6, 27 cells) | 1 hour | 8.18 | 0.889 |
+| Medium (resolution 6, 27 cells) | 4 hours | 31.10 | 0.902 |
+
+: SVR performance across spatial and temporal resolutions. {#tbl-svm-resolution}
+
+Finer spatial units lower the absolute error because each hexagon holds fewer trips. R$^2$ does not move monotonically: going from resolution 5 to 6 raises it at hourly windows (0.860 to 0.889) but lowers it at 4-hour windows (0.938 to 0.902).
+
+## Neural Network Search and Diagnostics
+
+The grid search covers hidden layer sizes ([64, 64], [128, 64], [256, 256] and [64, 64, 64, 64]), dropout (0 %, 10 %), learning rate (0.1, 0.01, 0.001) and optimiser (SGD, Adam). Each candidate trains for up to 200 iterations, stopping early after 20 iterations without validation improvement. The winning configuration (two hidden layers of 256 neurons each, no dropout, learning rate 0.001, Adam) is retrained from scratch on the combined training and validation data.
+
+Holding that architecture fixed, we compare three activation functions (@tbl-nn-activations). Tanh edges out ReLU, and both are far ahead of sigmoid, which never trains to a usable error level because of gradient saturation: its neurons produce near-constant outputs across much of the input range, which stalls learning in deeper networks. The final model uses ReLU; the gap to tanh is under two trips of MAE, small enough to fall within run-to-run variation on a single validation split.
+
+| Activation function | Validation MAE |
+|---|---|
+| ReLU | 21.93 trips |
+| Tanh | **20.04 trips** |
+| Sigmoid | 93.29 trips |
+
+: Validation error by activation function for the best network architecture. {#tbl-nn-activations}
+
+![Training and validation loss curves for the final neural network model.](../data/raw/nn_training_curve.png){width=80% fig-align="center"}
