@@ -7,7 +7,7 @@ A handful of hexagons account for a disproportionate share of all pickups: the d
 Most of the city sits close to zero for much of the day.
 On top of that sits a predictable weekly rhythm: bimodal weekdays with a strong evening peak, later and flatter weekends, and a quiet overnight window common to every day.
 
-Both forecasting models beat the seasonal climatology baseline, the neural network by a clear margin (MAE 18.90 against 23.88) and the SVM only just.
+Both forecasting models beat the seasonal climatology baseline, the neural network by a clear margin (MAE 18.90 against 23.88) and the SVM more modestly (21.78 against 23.88).
 The reinforcement learning agent learned a charging policy that reliably met the driver's departure energy needs at a cost well below a naive charge-at-maximum strategy.
 
 ## Recommendations for the Fleet Operator
@@ -42,7 +42,7 @@ Our recommendation: anchor the fleet on private or depot charging near where veh
 
 Several caveats bound these findings.
 Locations are reported at census-tract centroids rather than true GPS, so hotspot detection and flow maps inherit a coarse spatial grain, and fine within-tract patterns are invisible by construction.
-The forecasting models see no recent demand counts and no event calendar, which is why both under-predict the largest downtown spikes and why the SVR barely improves on a seasonal average.
+The forecasting models see no recent demand counts and no event calendar, which is why both under-predict the largest downtown spikes and why the SVR only modestly improves on a seasonal average.
 The SVR also had to be tuned on a small subsample because it doesn't scale to the full grid.
 And the charging agent is trained against a stylised environment with a fixed cost coefficient and normally distributed departure demand.
 Real prices and energy needs vary, so the learned policy is a proof of concept, not a deployable controller.

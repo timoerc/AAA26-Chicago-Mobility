@@ -147,23 +147,23 @@ Three settings are tuned alongside the kernel: C, how closely the model fits the
 
 | Kernel type | Best regularization | Validation MAE |
 |---|---|---|
-| Linear | C = 1.0 | 39.58 trips |
-| Polynomial | C = 10.0 | 29.59 trips |
-| RBF | C = 10.0 | **25.51 trips** |
+| Linear | C = 0.1 | 36.96 trips |
+| Polynomial | C = 10.0 | 27.44 trips |
+| RBF | C = 10.0 | **23.70 trips** |
 
 : Best SVR configuration per kernel type, scored on the validation set. {#tbl-svm-kernels}
 
-Moving from linear (MAE 39.58) to RBF (MAE 25.51) shows the value of flexibility: the link between weather, calendar and demand is non-linear, and the RBF kernel captures that curvature. The RBF kernel with C = 10 and epsilon = 0.1 goes into final evaluation.
+Moving from linear (MAE 36.96) to RBF (MAE 23.70) shows the value of flexibility: the link between weather, calendar and demand is non-linear, and the RBF kernel captures that curvature. The RBF kernel with C = 10 and epsilon = 0.1 goes into final evaluation.
 
 ## SVR Error Decomposition
 
 | Demand level (trips per window) | MAE | Observations |
 |---|---|---|
-| 0--1 | 0.68 | 7,580 |
-| 1--5 | 1.70 | 7,035 |
-| 5--20 | 3.81 | 10,328 |
-| 20--100 | 11.91 | 8,725 |
-| 100+ | 109.89 | 7,699 |
+| 0--1 | 0.72 | 8,373 |
+| 1--5 | 1.69 | 7,417 |
+| 5--20 | 3.57 | 10,232 |
+| 20--100 | 11.86 | 8,406 |
+| 100+ | 107.54 | 6,939 |
 
 : SVR test-set error decomposed by demand level. {#tbl-svm-error}
 
@@ -171,15 +171,15 @@ Moving from linear (MAE 39.58) to RBF (MAE 25.51) shows the value of flexibility
 
 | Hexagon size | Time window | MAE | R$^2$ |
 |---|---|---|---|
-| Large (resolution 5, 8 cells) | 1 hour | 24.57 | 0.860 |
-| Large (resolution 5, 8 cells) | 4 hours | 73.37 | 0.938 |
-| Large (resolution 5, 8 cells) | 8 hours | 116.64 | 0.944 |
-| Medium (resolution 6, 27 cells) | 1 hour | 8.18 | 0.889 |
-| Medium (resolution 6, 27 cells) | 4 hours | 31.10 | 0.902 |
-| Medium (resolution 6, 27 cells) | 8 hours | 45.73 | 0.948 |
-| Fine (resolution 7, 128 cells) | 1 hour | 2.98 | 0.790 |
-| Fine (resolution 7, 128 cells) | 4 hours | 9.50 | 0.842 |
-| Fine (resolution 7, 128 cells) | 8 hours | 12.69 | 0.886 |
+| Large (resolution 5, 8 cells) | 1 hour | 23.07 | 0.852 |
+| Large (resolution 5, 8 cells) | 4 hours | 69.32 | 0.933 |
+| Large (resolution 5, 8 cells) | 8 hours | 106.99 | 0.943 |
+| Medium (resolution 6, 27 cells) | 1 hour | 7.65 | 0.884 |
+| Medium (resolution 6, 27 cells) | 4 hours | 28.70 | 0.899 |
+| Medium (resolution 6, 27 cells) | 8 hours | 42.76 | 0.944 |
+| Fine (resolution 7, 118 cells) | 1 hour | 2.91 | 0.754 |
+| Fine (resolution 7, 118 cells) | 4 hours | 8.10 | 0.820 |
+| Fine (resolution 7, 118 cells) | 8 hours | 11.72 | 0.887 |
 
 : SVR performance across spatial and temporal resolutions. {#tbl-svm-resolution}
 
