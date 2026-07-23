@@ -7,7 +7,7 @@ A handful of hexagons account for a disproportionate share of all pickups: the d
 Most of the city sits close to zero for much of the day.
 On top of that sits a predictable weekly rhythm: bimodal weekdays with a strong evening peak, later and flatter weekends, and a quiet overnight window common to every day.
 
-Both forecasting models beat the seasonal climatology baseline, the neural network by a clear margin (MAE 21.16 against 24.42) and the SVM only just.
+Both forecasting models beat the seasonal climatology baseline, the neural network by a clear margin (MAE 18.90 against 23.88) and the SVM only just.
 The reinforcement learning agent learned a charging policy that reliably met the driver's departure energy needs at a cost well below a naive charge-at-maximum strategy.
 
 ## Recommendations for the Fleet Operator

@@ -44,24 +44,24 @@ Census tracts (roughly 800 units instead of 27) would multiply sparsity without 
 ### Feedforward Neural Network
 
 We trained a feedforward neural network on the same grid and features, so the two models are directly comparable.
-A grid search over architectures, learning rates, and optimizers (detailed in @sec-app-models) selected a network with two hidden layers of 256 neurons, trained with the Adam optimizer.
+A grid search over architectures, learning rates, and optimizers (detailed in @sec-app-models) selected a network with two hidden layers of 128 and 64 neurons, trained with the Adam optimizer.
 @tbl-nn-results shows the final test-set results.
 
 | Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
-| Climatology | 24.42 | 87.22 | 0.937 |
-| Neural network | **21.16** | **80.78** | **0.946** |
+| Climatology | 23.88 | 87.86 | 0.928 |
+| Neural network | **18.90** | **72.42** | **0.951** |
 
 : Neural network test-set performance compared to the climatology baseline. {#tbl-nn-results}
 
-The network also beats climatology, and by a wider margin: MAE 21.16 against 24.42, a 13 % improvement.
+The network also beats climatology, and by a wider margin: MAE 18.90 against 23.88, a 21 % improvement.
 It captures more of the demand structure beyond the weekly rhythm, in particular how weather, time, and location interact.
-A residual bias of $-8.25$ trips shows the extreme downtown peaks are still partly missed.
+A residual bias of $-5.34$ trips shows the extreme downtown peaks are still partly missed.
 Those spikes come from events the data can't see, such as concerts and sports fixtures, and would need an event calendar to forecast reliably.
 
 The model's operational output is an on-demand forecast for any combination of location, time, weather, and day type.
-Queried for an outer-city hexagon on a rainy Sunday in July, it predicts demand rising from 34.4 trips at 10:00 to a peak of 37.3 at midday, then easing to 20.4 by 18:00.
-That's about 282 trips across the window, following the leisure-weekend build-up seen in the descriptive analysis.
+Queried for an outer-city hexagon on a rainy Sunday in July, it predicts demand rising from 44.9 trips at 10:00 to a peak of 48.1 at midday, then easing to 20.3 by 18:00.
+That's about 339 trips across the window, following the leisure-weekend build-up seen in the descriptive analysis.
 
 ### Model Comparison
 
@@ -70,14 +70,14 @@ Both models run on the same resolution 6 grid with 4-hour windows, each measured
 | Model | Setting | Climatology MAE | Model MAE | Improvement |
 |---|---|---|---|---|
 | SVR (RBF) | H3 res. 6, 4 h windows | 25.63 | 24.33 | **Better** (+5 %) |
-| Neural network | H3 res. 6, 4 h windows | 24.42 | 21.16 | **Better** (+13 %) |
+| Neural network | H3 res. 6, 4 h windows | 23.88 | 18.90 | **Better** (+21 %) |
 
 : Each model's performance relative to the climatology baseline. {#tbl-model-comparison}
 
 The neural network wins for two structural reasons.
 It trains on the full dataset while the SVR, which scales poorly, had to learn from a small subsample.
 And it learns feature interactions jointly, where the SVR applies one fixed transformation to every input.
-Both beat the seasonal schedule, but the network improves on it by roughly two and a half times as much.
+Both beat the seasonal schedule, but the network improves on it by roughly four times as much.
 For an operator positioning vehicles under changing weather or on atypical weekdays, that responsiveness is the point: a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one.
 
 ## Smart Charging

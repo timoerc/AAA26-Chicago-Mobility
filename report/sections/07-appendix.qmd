@@ -187,15 +187,15 @@ Finer spatial units and shorter windows lower the absolute error because each ce
 
 ## Neural Network Search and Diagnostics
 
-The grid search covers hidden layer sizes ([64, 64], [128, 64], [256, 256] and [64, 64, 64, 64]), dropout (0 %, 10 %), learning rate (0.1, 0.01, 0.001) and optimizer (SGD, Adam). Each candidate trains for up to 200 iterations, stopping early after 20 iterations without validation improvement. The winning configuration (two hidden layers of 256 neurons each, no dropout, learning rate 0.001, Adam) is retrained from scratch on the combined training and validation data.
+The grid search covers hidden layer sizes ([64, 64], [128, 64], [256, 256] and [64, 64, 64, 64]), dropout (0 %, 10 %), learning rate (0.1, 0.01, 0.001) and optimizer (SGD, Adam). Each candidate trains for up to 200 iterations, stopping early after 20 iterations without validation improvement. The winning configuration (two hidden layers of 128 and 64 neurons, no dropout, learning rate 0.001, Adam) is retrained from scratch on the combined training and validation data.
 
 Holding that architecture fixed, we compare three activation functions (@tbl-nn-activations). Tanh edges out ReLU, and both are far ahead of sigmoid, which never trains to a usable error level because of gradient saturation: its neurons produce near-constant outputs across much of the input range, which stalls learning in deeper networks. The final model uses ReLU; the gap to tanh is under two trips of MAE, small enough to fall within run-to-run variation on a single validation split.
 
 | Activation function | Validation MAE |
 |---|---|
-| ReLU | 21.93 trips |
-| Tanh | **20.04 trips** |
-| Sigmoid | 93.29 trips |
+| ReLU | 17.86 trips |
+| Tanh | **17.50 trips** |
+| Sigmoid | 81.18 trips |
 
 : Validation error by activation function for the best network architecture. {#tbl-nn-activations}
 
