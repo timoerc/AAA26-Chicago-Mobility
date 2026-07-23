@@ -78,24 +78,24 @@ Different fields are missing for different reasons, so each gets its own treatme
 
 ## Consistency Checks
 
-Some records are present but aren't real journeys. **Ghost trips** have zero seconds, identical start and end time, and identical start and end location, which looks like a meter switched on and off. All four conditions must hold, so genuine short trips survive; we remove the **153,078** records that qualify (~1 %). A further **1,014,515 trips** (6.8 %) log zero distance despite positive duration, with a median of 46 seconds and a quarter under 6 seconds.
+Some records are present but aren't real journeys. **Ghost trips** have zero seconds, identical start and end time, and identical start and end location, which looks like a meter switched on and off. All four conditions must hold, so genuine short trips survive; we remove the **153,078** records that qualify (~1 %). A further **1,013,003 trips** (6.8 %) log zero distance despite positive duration, with a median of 73 seconds and a quarter under 7 seconds.
 These are overwhelmingly meter cancellations or GPS failures rather than real journeys, and all are excluded. We also confirmed there are no end-before-start inversions and no duplicate trip IDs.
 
 ## Outlier Removal
 
 After dropping non-journeys, we remove physically implausible values using two derived metrics, average speed and fare per mile (@tbl-outlier-rules).
 
-| Criterion | Records removed | Share of dataset |
+| Criterion | Records flagged | Share of dataset |
 |---|---|---|
-| Non-positive fare | 5,243 | 0.04 % |
-| Distance exceeding 100 miles | 960 | 0.01 % |
-| Duration exceeding 3 hours | 11,629 | 0.08 % |
-| Average speed above 70 mph | 6,663 | 0.05 % |
-| Average speed below 2 mph | 155,478 | 1.13 % |
-| Fare below \$2 per mile | 28,537 | 0.21 % |
-| Fare above \$100 per mile | small | < 0.01 % |
+| Non-positive fare | 5,252 | 0.04 % |
+| Distance exceeding 100 miles | 1,011 | 0.01 % |
+| Duration exceeding 3 hours | 12,651 | 0.09 % |
+| Average speed above 70 mph | 6,600 | 0.05 % |
+| Average speed below 2 mph | 155,659 | 1.13 % |
+| Fare below \$2 per mile | 28,567 | 0.21 % |
+| Fare above \$100 per mile | 115,730 | 0.84 % |
 
-: Outlier removal criteria applied to the taxi trip dataset. {#tbl-outlier-rules}
+: Outlier removal criteria applied to the taxi trip dataset; the union of all rules drops 269,407 records (1.96 %). {#tbl-outlier-rules}
 
 ## Cleaning Levels
 
@@ -173,12 +173,17 @@ Moving from linear (MAE 39.58) to RBF (MAE 25.51) shows the value of flexibility
 |---|---|---|---|
 | Large (resolution 5, 8 cells) | 1 hour | 24.57 | 0.860 |
 | Large (resolution 5, 8 cells) | 4 hours | 73.37 | 0.938 |
+| Large (resolution 5, 8 cells) | 8 hours | 116.64 | 0.944 |
 | Medium (resolution 6, 27 cells) | 1 hour | 8.18 | 0.889 |
 | Medium (resolution 6, 27 cells) | 4 hours | 31.10 | 0.902 |
+| Medium (resolution 6, 27 cells) | 8 hours | 45.73 | 0.948 |
+| Fine (resolution 7, 128 cells) | 1 hour | 2.98 | 0.790 |
+| Fine (resolution 7, 128 cells) | 4 hours | 9.50 | 0.842 |
+| Fine (resolution 7, 128 cells) | 8 hours | 12.69 | 0.886 |
 
 : SVR performance across spatial and temporal resolutions. {#tbl-svm-resolution}
 
-Finer spatial units lower the absolute error because each hexagon holds fewer trips. R$^2$ does not move monotonically: going from resolution 5 to 6 raises it at hourly windows (0.860 to 0.889) but lowers it at 4-hour windows (0.938 to 0.902).
+Finer spatial units and shorter windows lower the absolute error because each cell holds fewer trips. R$^2$ moves non-monotonically: resolution 7 is consistently the weakest, since roughly half its grid is zero-demand and the per-cell signal gets noisy, while resolutions 5 and 6 trade the lead depending on window width.
 
 ## Neural Network Search and Diagnostics
 
@@ -209,7 +214,7 @@ Holding that architecture fixed, we compare three activation functions (@tbl-nn-
 | Action | Label | Power (kW) | Energy per slot (kWh) | Cost this slot |
 |---|---|---|---|---|
 | 0 | Off | 0.0 | 0.00 | 4.00 |
-| 1 | Low | 7.3 | 1.83 | 5.58 |
+| 1 | Low | 7.3 | 1.82 | 5.58 |
 | 2 | Medium | 14.7 | 3.67 | 7.80 |
 | 3 | High | 22.0 | 5.50 | 10.87 |
 

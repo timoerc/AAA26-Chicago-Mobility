@@ -9,7 +9,7 @@ Cleaning removes just over 10 % of raw records.
 It doesn't distort the geography either: per-neighborhood pickup counts before and after cleaning correlate at 1.0000.
 
 One finding matters for revenue analysis.
-In 47.9 % of rows the billed total exceeds the sum of its components, almost always by exactly \$0.50, concentrated in card and mobile payments.
+In 48.0 % of rows the billed total exceeds the sum of its components, almost always by exactly \$0.50, concentrated in card and mobile payments.
 That pattern points to an unitemized card surcharge.
 We apply no correction and treat `trip_total` as the authoritative revenue figure.
 

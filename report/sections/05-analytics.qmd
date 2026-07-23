@@ -37,7 +37,7 @@ The error is also unevenly distributed.
 The model is accurate in the many low-demand cells but under-predicts the busy downtown and airport hexagons where forecasts matter most, a known artifact of training on compressed log counts (decomposition in @sec-app-models).
 
 We also tested the tuned model across coarser and finer grids, since the granularity choice itself is a business decision.
-Finer cells cut the absolute error per cell (from 73 to 31 trips MAE at 4-hour windows) simply because each cell holds fewer trips, while explained variance stays around 0.9; the full sweep is in @sec-app-models.
+Finer cells cut the absolute error per cell (73, 31, and 9.5 trips MAE at 4-hour windows for resolutions 5, 6, and 7) simply because each cell holds fewer trips, but explained variance falls off at resolution 7, where roughly half the grid is zero-demand; the full sweep is in @sec-app-models.
 Resolution 6 with 4-hour windows remains the working choice.
 Census tracts (roughly 800 units instead of 27) would multiply sparsity without operational benefit.
 
