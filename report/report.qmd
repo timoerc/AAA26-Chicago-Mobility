@@ -9,7 +9,7 @@ author:
     student-id: "7409287"
   - name: Timo Ercole
     student-id: "7408459"
-contact: lschreie@smail.uni-koeln.de # Specify one contact for the project
+contact: lschreie@smail.uni-koeln.de # Specified one contact for the project
 supervisor: "Univ.-Prof. Dr. Wolfgang Ketter"
 co-supervisor: "Janik Muires" # TA of the course is the co-supervisor
 date: 2026-07-26 # Date of submission
