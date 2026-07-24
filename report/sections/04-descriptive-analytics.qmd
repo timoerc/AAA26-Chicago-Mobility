@@ -1,46 +1,41 @@
 # Descriptive Analytics
 
-## When Demand Happens
+## When Demand Occurs
 
-Taxi demand in Chicago follows predictable rhythms tied to work schedules, social activity, and weather.
-Understanding those rhythms is the starting point for fleet positioning and driver scheduling.
+Taxi demand in Chicago follows predictable rhythms that are tied to work schedules, social activity, and weather, and understanding these rhythms is the natural starting point for any decision about fleet positioning and driver scheduling.
 
 ![Pickup demand heatmap cross-tabulated by hour of day and day of week.](assets/heatmap_hour_dow.png){width=80% fig-align="center"}
 
-Weekdays are bimodal: a morning commuter peak around 08:00 and a stronger, broader evening peak between 16:00 and 19:00, with Tuesday to Thursday carrying the highest volumes in the dataset.
-Weekends run on a different clock.
-Demand starts later, builds gradually through the afternoon, and shows no commuter spike, because this is leisure travel.
-The 00:00--06:00 window is uniformly quiet on every day of the week, which makes it the natural slot for charging and maintenance in an electric fleet.
+Weekday demand is distinctly bimodal, with a morning commuter peak around 08:00 followed by a stronger and broader evening peak between 16:00 and 19:00 (probably a reflection of the workday routine), and Tuesday through Thursday carry the highest volumes in the entire dataset.
+Weekends run on a different clock altogether: demand starts later, builds gradually through the afternoon, and shows none of the commuter spikes, reflecting its essentially leisure-driven character.
+Across every day of the week, the 00:00--06:00 window remains uniformly quiet, which makes it the natural slot for charging and maintenance in an electric fleet.
 
-Individual trips are short urban hops: median duration around ten minutes, most trips under five miles, and fares to match, with a long tail from airport and cross-city rides (distributions in @sec-app-figures).
-Idle time between a driver's consecutive trips concentrates in the 0--30 minute range, though a mean near an hour points to periods of deliberate waiting or repositioning.
+Individual trips are, for the most part, short urban hops, with a median duration of around ten minutes, most journeys running under five miles, and fares to match, alongside a long tail of airport and cross-city rides (distributions in @sec-app-figures).
+The idle time between a driver's consecutive trips concentrates in the 0--30 minute range, although a mean closer to an hour indicates recurring periods of deliberate waiting or repositioning.
 
-## Where Demand Happens
+## Where Demand Occurs
 
-To analyze space consistently we discretize the city with Uber's H3 hexagonal grid, which offers uniform cell areas and clean adjacency where administrative boundaries don't (grid illustration in @sec-app-figures).
-The maps below use resolution 7.
-The forecasting models in Section 5 operate one step coarser, at resolution 6.
+To analyze space consistently, we discretize the city with Uber's H3 hexagonal grid, which offers uniform cell areas and clean adjacency where administrative boundaries do not (grid illustration in @sec-app-figures).
+The maps below are drawn at resolution 7, while the forecasting models in Section 5 operate one step coarser, at resolution 6.
 
 ![Choropleth maps of pickup demand aggregated at community area level and H3 resolutions 6, 7, and 8.](assets/demand_choropleth.png){width=80% fig-align="center"}
 
-The Near North Side and the Loop dominate demand, consistent with their role as Chicago's central business and entertainment district, while O'Hare forms a structurally distinct cluster in the far northwest.
-As resolution increases the hotspots sharpen into specific corridors (the Magnificent Mile, River North, the area around O'Hare), and areas that look moderate at community level turn out to vary strongly inside.
-Community-area aggregation hides exactly the sub-neighborhood differences a fleet needs for positioning decisions.
+The Near North Side and the Loop clearly dominate demand, consistent with their role as Chicago's central business and entertainment district, whereas O'Hare forms a structurally distinct cluster in the far northwest.
+As the resolution increases, the hotspots sharpen into specific corridors such as the Magnificent Mile, River North, and the area around O'Hare, and neighborhoods that appear moderate at community level turn out to vary considerably within themselves.
+Community-area aggregation therefore conceals precisely the sub-neighborhood differences that a fleet relies on for its positioning decisions.
 
-The picture shifts over the day, but the downtown-lakefront corridor stays dominant in every 4-hour window (maps in @sec-app-figures).
-Overnight, the downtown core keeps relative activity from hospitality traffic.
-Early mornings add a secondary hotspot around Midway from first departures, and the evening windows intensify the core sharply while the outskirts stay comparatively quiet.
+The picture shifts over the course of the day, yet the downtown-lakefront corridor remains dominant in every 4-hour window (maps in @sec-app-figures).
+Overnight, the downtown core retains relative activity driven by hospitality traffic; early mornings add a secondary hotspot around Midway as the first departures begin; and the evening windows intensify the core sharply while the outskirts stay comparatively quiet.
 
 ## Flows Between Areas
 
-Where trips go matters as much as where they start.
-The origin--destination analysis (matrix in @sec-app-figures) shows the Near North Side and the Loop dominating as both origins and destinations.
-O'Hare, despite its distance, sends nearly 500,000 trips toward those two areas alone, making the airport-to-downtown corridor one of the most dependable sources of paid mileage in the network.
-Vehicles dropping passengers in outer neighborhoods, by contrast, face a structural repositioning problem to get back to demand.
+Where trips end up matters as much as where they begin.
+The origin--destination analysis (matrix in @sec-app-figures) shows the Near North Side and the Loop dominating as both origins and destinations, and O'Hare, despite its distance, sends nearly 500,000 trips toward those two areas alone, which makes the airport-to-downtown corridor one of the most dependable sources of paid mileage in the network.
+Vehicles that drop passengers in the outer neighborhoods, by contrast, face a structural repositioning problem in getting back to where demand is.
 
-Net flow, defined as pickups minus dropoffs per hexagon, turns that imbalance into something a planner can act on: persistently positive cells need more vehicles than dropoffs return, and negative cells accumulate them.
+Net flow, defined as pickups minus dropoffs per hexagon, translates this imbalance into something a planner can act on, since persistently positive cells require more vehicles than their dropoffs return, while negative cells steadily accumulate them.
 
 ![Net flow (pickups minus dropoffs) by H3 hexagon, aggregated across the full observation period.](assets/netflow_4h_buckets.png){width=80% fig-align="center"}
 
-The downtown core and the O'Hare corridor consistently hand out more trips than they take back, while the residential outskirts act as vehicle sinks.
-For an electric fleet this points straight at infrastructure: chargers placed in the negative-flow residential zones turn otherwise idle accumulation into productive charging time, before vehicles are repositioned to the high-demand corridors.
+The downtown core and the O'Hare corridor consistently hand out more trips than they take back, whereas the residential outskirts act as vehicle sinks.
+For an electric fleet this points directly at infrastructure, since chargers placed in the negative-flow residential zones would turn otherwise idle accumulation into productive charging time before the vehicles are repositioned to the high-demand corridors.

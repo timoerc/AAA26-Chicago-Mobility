@@ -16,12 +16,9 @@ The goal is actionable intelligence for launching and running the fleet. The ana
 2. **How accurately can future demand be forecast?** Better predictions cut idle time and energy waste, and raise driver earnings.
 3. **How should charging be managed to minimize cost?** Charging timed to electricity prices and predicted demand can cut operating cost sharply.
 
-The work is split into four tasks.
-Task 1 cleans the raw trips, discretizes them onto Uber H3 hexagons, and enriches them with weather data.
-Task 2 uses descriptive spatial analytics to surface demand hotspots and flow patterns.
-Task 3 trains two models to forecast demand per hexagon and time bucket: a Support Vector Machine and a feedforward neural network.
-Task 4 develops a reinforcement learning agent for smart-charging policies under stochastic energy demand and dynamic pricing.
-
-Three data sources feed the analysis: historical Chicago taxi trips from the Chicago Data Portal, hourly weather from Open-Meteo, and OpenStreetMap points of interest for urban context.
-The main text sticks to findings and decisions.
-Data dictionaries, cleaning rules, and tuning details are in the appendix.
+The report is organized into five sections.
+Section 2 describes the three data sources: the taxi trips, hourly weather, and points of interest.
+Section 3 describes the cleaning methodology applied that cleans the raw trips and discretizes them onto Uber H3 hexagons to build a forecasting grid.
+Section 4 uses descriptive analytics to show when and where demand occurs and how trips flow between areas.
+Section 5 describes the forecasting models used to predict demand per hexagon and time bucket with a Support Vector Machine and a feedforward neural network, then develops a reinforcement learning agent for smart-charging policies under stochastic demand and dynamic pricing.
+Section 6 summarizes the findings and gives recommendations for the fleet operator.

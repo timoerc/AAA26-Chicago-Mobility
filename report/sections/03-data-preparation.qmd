@@ -1,33 +1,34 @@
 # Data Preparation
 
-## Cleaning the Trip Data
+## Cleaning the Taxi Trip Data
 
-Public portal data needs validation before use.
-Rather than applying fixed rules upfront, we worked through the dataset issue by issue, diagnosing each cause and choosing a targeted fix: missing fields, "ghost trips" with zero duration and distance, zero-distance meter cancellations, and physically implausible speeds and fares.
-The full rule set with per-rule counts is in @sec-app-prep.
-Cleaning removes just over 10 % of raw records.
-It doesn't distort the geography either: per-neighborhood pickup counts before and after cleaning correlate at 1.0000.
+Public portal data requires careful validation before it can be relied upon.
+Rather than imposing a fixed set of rules from the outset, we worked through the dataset issue by issue, diagnosing the cause behind each problem before settling on a targeted fix.
+This covered missing fields and their imputation, "ghost trips" recordings with zero duration and distance, zero-distance meter cancellations, and trips whose implied speeds or fares were physically implausible; the complete rule set, with per-rule counts, is reported in @sec-app-prep.
+Taken together, these steps remove just over 10 % of the raw records without distorting the underlying geography, as the per-neighborhood pickup counts before and after cleaning correlate at 1.0000.
 
-One finding matters for revenue analysis.
-In 48.0 % of rows the billed total exceeds the sum of its components, almost always by exactly \$0.50, concentrated in card and mobile payments.
-That pattern points to an unitemized card surcharge.
-We apply no correction and treat `trip_total` as the authoritative revenue figure.
+One observation deserves particular attention because it bears directly on the revenue analysis.
+In 48.0 % of rows the billed total exceeds the sum of its individual components, almost always by exactly \$0.50 and overwhelmingly on card and mobile payments, a pattern that points to an unitemized card surcharge.
+We therefore apply no correction and treat `trip_total` as the authoritative revenue figure throughout.
 
-Not every task needs the same rigor.
-A trip with an odd speed or fare is still a real demand event, so **demand forecasting** uses a minimal cleaning level that keeps 99.99 % of rows, while **trip-level analyses** such as fare and duration use the full level, keeping 89.99 %.
+Not every following analysis step calls for the same degree of rigor.
+Since partially faulty trips (e.g., with an unusual speed or fare) still represents a genuine demand event, we distinguish two cleaning levels: **demand forecasting** uses a minimal level that retains 99.99 % of rows, whereas **trip-level analyses** such as fare and duration rely on the full level, which keeps 89.99 %.
 
-Weather and POI data needed lighter preparation: a redundant weather condition code was dropped, apparent gaps at the spring clock change were verified as correct rather than missing, and POI geometries were reduced to single coordinates and mapped to the seven categories (details in @sec-app-prep).
+The weather and POI data required comparatively light preparation.
+The three weather zones were obtained by running K-means clustering over all trip pickup coordinates, which placed the zone centroids where demand is densest, namely the downtown core, O'Hare, and the South Side.
+Beyond this, we dropped a redundant weather condition code and confirmed that the apparent gaps at the spring clock change were correct rather than missing values.
+The points of interest posed a different problem, as the raw OpenStreetMap tags were too fine-grained and overlapping to be used directly.
+We therefore collapsed them into seven demand-relevant categories ranging from food and nightlife down to transport, and reduced each geometry to a single coordinate.
+Aggregated per hexagon as category counts, these then serve as a proxy for how strongly each cell attracts trips (details in @sec-app-prep).
 
 ## From Trips to a Forecasting Grid
 
-The models don't run on individual trips.
-Trips are aggregated to a grid, one row per *(hexagon, time bucket)* with the pickup count as the target.
-Cells with no pickups are kept as explicit zero-demand rows, so the models learn from quiet periods too.
+The forecasting models do not operate on individual trips but on an aggregated grid, with one row per *(hexagon, time bucket)* and the trip pickup count as the target.
+Cells that record no pickups are retained as explicit zero-demand rows, ensuring that the models also learn from quiet periods rather than only from busy ones.
 
-Grain is a business trade-off: finer cells localize demand better but leave more of the grid empty and harder to forecast.
-We operate at **H3 resolution 6 with 4-hour buckets**: 27 hexagons $\times$ 5,107 time buckets = 137,889 rows at a manageable 12.6 % zero-demand share.
-One step finer pushes the zero-demand share toward 50 % without a matching gain in operational precision (full sparsity comparison in @sec-app-prep).
-Section 5 assesses how coarser and finer grids affect model accuracy.
+Choosing the grain of this grid is ultimately a business trade-off, since finer cells localize demand more precisely but leave a larger share of the grid empty and correspondingly harder to forecast.
+We settle on **H3 resolution 6 with 4-hour buckets** as our main choice, which gives 27 hexagons $\times$ 5,107 time buckets = 137,889 rows at a manageable 12.6 % zero-demand share.
+Moving one step finer would push that share toward 50 % without a commensurate gain in operational precision (the full sparsity comparison is given in @sec-app-prep), and Section 5 examines in detail how coarser and finer grids affect model accuracy.
 
-Every model input is knowable before the bucket begins: calendar context (hour, day of week, month, weekend and US-holiday flags, encoded as sine--cosine pairs so that 23:00 sits next to 00:00), the nine weather variables for the nearest zone, and a per-hexagon indicator that lets each cell learn its own baseline.
-Together these give 51 input variables per grid cell.
+By design, every model input is knowable before the bucket begins.
+These inputs comprise the calendar context (hour, day of week, month, and weekend and US-holiday flags, encoded as sine--cosine pairs so that 23:00 sits next to 00:00), the nine weather variables for the nearest zone, and a per-hexagon indicator that allows each cell to learn its own baseline, giving 51 input features per grid cell in total.

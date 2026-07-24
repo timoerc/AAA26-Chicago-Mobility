@@ -1,31 +1,31 @@
 # Data Description
 
-Three data sources feed the analysis: Chicago taxi trip records, hourly weather, and OpenStreetMap points of interest.
-Together they cover demand, environmental context, and urban structure.
-Full data dictionaries are in @sec-app-data.
+The analysis draws on three data sources that together capture demand, its environmental context, and the surrounding urban structure: Chicago taxi trip records, hourly weather observations, and OpenStreetMap points of interest.
+Full data dictionaries are provided in @sec-app-data.
 
 ## Taxi Trip Data
 
-Downloaded from the Chicago Data Portal on 10 May 2026, the dataset holds every recorded taxi trip from January 2024 to early May 2026: **14,985,679 trips** across 21 columns, extended by seven derived temporal features at load time.
+The core dataset comes from the Chicago Data Portal and was downloaded on 10 May 2026.
+It records every taxi trip taken between January 2024 and the beginning of May 2026, amounting to 14,985,679 trips described across 21 columns.
+Each row corresponds to one journey, and the columns include: identifiers for the trip and the vehicle, start and end timestamps, trip metrics such as duration and distance, spatial fields locating the pickup and dropoff at both census-tract and community-area level, and financial fields covering the fare, tips, total charge, payment method, and operating company.
+A full breakdown of the fields is given in @sec-app-data.
 
-Three portal design choices matter downstream.
-Driver and trip IDs are SHA-1 hashes, so there's no personally identifiable information.
-All timestamps are rounded to the nearest 15 minutes for privacy, which caps temporal precision but doesn't affect hourly or 4-hourly aggregation.
-And location is reported only at census-tract level.
-With roughly 800 tracts in Chicago the spatial grain is coarser than GPS, but each tract's centroid coordinates support spatial joins.
+Three characteristics of how the portal publishes this data shape what can be done with it later on.
+Driver and trip identifiers are released as unique anonymized identifiers, which means the records carry no personally identifiable information while still allowing individual vehicles and trips to be followed across rows.
+All timestamps are rounded to the nearest 15 minutes for privacy reasons, so the temporal precision is limited, although this leaves hourly and coarser aggregations unaffected.
+Finally, locations are reported only at the level of census tracts rather than as exact coordinates.
+With roughly 800 tracts covering the city the spatial resolution is coarser than GPS, but each tract's centroid still provides a usable coordinate for the spatial joins that follow.
 
 ## Weather Data
 
-Hourly weather comes from the Open-Meteo Historical Archive API [@openmeteo] over the same date range.
-Chicago spans about 600 km² with real microclimatic differences between the lakefront, the urban core, and the far northwest, so a single weather station won't represent it.
-We defined three weather zones by K-means clustering on all pickup coordinates, placing zone centroids where demand is densest: the downtown core, O'Hare, and the South Side.
-The result is **61,335 hourly observations** (~20,445 per zone) across nine variables.
-Temperatures range from $-26.8$ °C to 36.3 °C, with apparent lows of $-32.9$ °C from wind chill.
-That's Chicago's continental climate at work, and a plausible driver of taxi demand.
+Hourly weather observations come from the Open-Meteo Historical Archive API [@openmeteo] and span the same period as the trip data.
+Chicago covers close to 600 km² and shows genuine microclimatic differences between the lakefront, the dense urban core, and the far northwest, so a single measurement point would not represent conditions across the city well.
+The weather is therefore sampled at three locations spread across Chicago, which yields 61,335 hourly observations, roughly 20,445 per location.
+Each observation is timestamped and located, and carries nine meteorological variables that broadly describe temperature, precipitation and snow, wind, and cloud cover.
 
 ## Point-of-Interest Data
 
-POI data comes from OpenStreetMap via `osmnx` [@boeing2017osmnx].
-Raw tags (restaurant, bus_stop, hospital, ...) are too fine-grained and overlapping to use directly, so we collapsed them into seven demand-relevant categories, from food & nightlife (5,652 locations) down to transport (134), leaving **9,141 POIs** after reducing polygons to centroids.
-POIs are static: they don't vary over time and aren't counted as demand.
-Aggregated per hexagon as category counts, they proxy how strongly each cell attracts trips.
+To capture the urban structure that draws trips, the analysis uses points of interest from OpenStreetMap, retrieved through the `osmnx` library [@boeing2017osmnx].
+The query draws on four broad OpenStreetMap tag groups, amenities, shops, tourism, and leisure, which between them describe fixed features of the city such as restaurants, transit stops, hospitals, and shops, and amount to 9,124 locations in total.
+Each point of interest is essentially a coordinate paired with a type tag.
+Unlike the trip and weather data, points of interest are static: they do not change over the study period and are never treated as demand themselves, but rather as an indication of how strongly a given area attracts people.
