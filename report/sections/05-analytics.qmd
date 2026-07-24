@@ -4,22 +4,18 @@
 
 ### Forecasting Problem and Baselines
 
-The task is to predict **taxi demand per hexagon and 4-hour window**, using only information available before the window begins: time of day, day of week, weather forecast, and location.
-A dispatcher scheduling tomorrow's shifts doesn't have tomorrow's actual counts, so the models use no lagged demand.
-Trip counts are heavily skewed (a few downtown cells see hundreds of pickups per window, most outer cells single digits), so we train on log-transformed counts and report all metrics back on the trip scale.
-The grid is randomly split 50 / 20 / 30 into training, validation, and test data.
-The test set is touched once, for the final numbers.
+We set out to predict **taxi demand per hexagon and 4-hour window**, relying solely on information available before the window begins, namely the time of day, day of week, weather forecast, and location.
+Because a dispatcher scheduling tomorrow's shifts does not yet have tomorrow's actual counts, the models deliberately use no lagged demand.
+Since trip counts are heavily skewed, with a few downtown cells seeing hundreds of pickups per window while most outer cells see only single digits, we train on log-transformed trip counts and report all metrics back on the trip scale.
+The grid is split randomly into training, validation, and test data in a 50 / 20 / 30 ratio, and the test set is touched only once, for the final numbers.
 
-Two naive benchmarks give the results business meaning.
-The *per-cell mean*, the historical average per hexagon and window, scores MAE 61.62 trips.
-*Climatology*, the average per hexagon, hour, and weekday-vs-weekend, scores MAE 23.88.
-Climatology is the hurdle that matters.
-It's what an operator gets from a simple lookup schedule, so a model earns its complexity only by beating it.
+To give these results business meaning, we compare them against two naive benchmarks: the *per-cell mean* (the historical average per hexagon and window), scores a MAE of 61.62 trips, while *climatology* (the average per hexagon, hour, and weekday-versus-weekend) scores 23.88.
+Climatology is the hurdle that really matters, as it is what an operator would already obtain from a simple lookup schedule, and a model therefore justifies its added complexity only by beating it.
 
-### Support Vector Machine
+### Support Vector Regression
 
 We tuned a Support Vector Machine for regression across kernel types and regularization settings on a validation subsample; the search and its intermediate results are in @sec-app-models.
-The best configuration, an RBF kernel with C = 10, confirms that the link between weather, calendar, and demand is non-linear.
+The best configuration with an RBF kernel (and regularization parameter C = 10), confirms that the link between weather, calendar, and demand is non-linear.
 @tbl-svm-results shows the final test-set results on 41,367 grid cells.
 
 | Model | MAE | RMSE | R$^2$ |
@@ -30,16 +26,13 @@ The best configuration, an RBF kernel with C = 10, confirms that the link betwee
 
 : SVR test-set performance compared to baselines. {#tbl-svm-results}
 
-The SVR beats both baselines, but its margin over climatology is modest: MAE 21.78 against 23.88, roughly 9 %.
-Without access to recent actual counts, most of what it can learn is the seasonal pattern climatology already encodes.
-The 9 % it adds comes from weather and calendar interactions a fixed schedule can't represent.
-The error is also unevenly distributed.
-The model is accurate in the many low-demand cells but under-predicts the busy downtown and airport hexagons where forecasts matter most, a known artifact of training on compressed log counts (decomposition in @sec-app-models).
+The SVR beats both baselines, though its margin over climatology is modest, at an MAE of 21.78 against 23.88, or roughly 9 %.
+Without access to recent actual counts, most of what the model can learn is the seasonal pattern that climatology already encodes, and the 9 % it adds on top comes from the weather and calendar interactions that a fixed schedule cannot represent.
+The error is also unevenly distributed: the model is accurate in the many low-demand cells but under-predicts the busy downtown and airport hexagons where forecasts matter most, a known artifact of training on compressed log counts (decomposition in @sec-app-models).
 
-We also tested the tuned model across coarser and finer grids, since the granularity choice itself is a business decision.
-Finer cells cut the absolute error per cell (69, 29, and 8.1 trips MAE at 4-hour windows for resolutions 5, 6, and 7) simply because each cell holds fewer trips, but explained variance falls off at resolution 7, where roughly half the grid is zero-demand; the full sweep is in @sec-app-models.
-Resolution 6 with 4-hour windows remains the working choice.
-Census tracts (roughly 800 units instead of 27) would multiply sparsity without operational benefit.
+Because the granularity of the grid is itself a business decision, we also evaluated the tuned model across coarser and finer grids.
+Finer cells cut the absolute error per cell, giving 69, 29, and 8.1 trips of MAE at 4-hour windows for resolutions 5, 6, and 7 respectively, simply because each cell holds fewer trips; the explained variance, however, falls off at resolution 7, where roughly half the grid is zero-demand (the full sweep is in @sec-app-models).
+Resolution 6 with 4-hour windows therefore remains the working choice, as moving down to census tracts, roughly 800 units instead of 27, would multiply sparsity without any operational benefit.
 
 ### Feedforward Neural Network
 
@@ -54,14 +47,12 @@ A grid search over architectures, learning rates, and optimizers (detailed in @s
 
 : Neural network test-set performance compared to the climatology baseline. {#tbl-nn-results}
 
-The network also beats climatology, and by a wider margin: MAE 18.90 against 23.88, a 21 % improvement.
-It captures more of the demand structure beyond the weekly rhythm, in particular how weather, time, and location interact.
-A residual bias of $-5.34$ trips shows the extreme downtown peaks are still partly missed.
-Those spikes come from events the data can't see, such as concerts and sports fixtures, and would need an event calendar to forecast reliably.
+The network also beats climatology, and by a considerably wider margin, with an MAE of 18.90 against 23.88, a 21 % improvement.
+It captures more of the demand structure beyond the weekly rhythm, in particular the way weather, time, and location interact, though a residual bias of $-5.34$ trips shows that the extreme downtown peaks are still partly missed.
+Those spikes stem from events the data cannot see, such as concerts and sports fixtures, and would require an event calendar to forecast reliably.
 
-The model's operational output is an on-demand forecast for any combination of location, time, weather, and day type.
-Queried for an outer-city hexagon on a rainy Sunday in July, it predicts demand rising from 44.9 trips at 10:00 to a peak of 48.1 at midday, then easing to 20.3 by 18:00.
-That's about 339 trips across the window, following the leisure-weekend build-up seen in the descriptive analysis.
+In operational terms, the model produces an on-demand forecast for any combination of location, time, weather, and day type.
+Queried for an outer-city hexagon on a rainy Sunday in July, for instance, it predicts demand rising from 44.9 trips at 10:00 to a peak of 48.1 at midday before easing to 20.3 by 18:00, amounting to roughly 339 trips across the window and following the leisure-weekend build-up already seen in the descriptive analysis.
 
 ### Model Comparison
 
@@ -75,26 +66,22 @@ Both models run on the same resolution 6 grid with 4-hour windows, measured agai
 : Each model's performance relative to the climatology baseline. {#tbl-model-comparison}
 
 The neural network wins for two structural reasons.
-It trains on the full dataset while the SVR, which scales poorly, had to learn from a small subsample.
-And it learns feature interactions jointly, where the SVR applies one fixed transformation to every input.
-Both beat the seasonal schedule, but the network improves on it by more than twice as much.
-For an operator positioning vehicles under changing weather or on atypical weekdays, that responsiveness is the point: a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one.
+It trains on the full dataset, whereas the SVR scales poorly and had to learn from a small subsample, and it learns feature interactions jointly, where the SVR applies one fixed transformation to every input.
+Both beat the seasonal schedule, but the network improves on it by more than twice as much, and for an operator positioning vehicles under changing weather or on atypical weekdays that responsiveness is precisely the point, since a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one.
 
 ## Smart Charging
 
-Forecasting tells the operator where demand will be.
-Charging determines what it costs to serve.
-We model a single electric taxi that arrives home at 2 p.m. and must leave the garage at 4 p.m.
-Instead of charging at a flat rate, an agent sets the charging power every 15 minutes, balancing two goals: keep the recharging cost low and guarantee enough energy for the upcoming shift, whose demand is unknown while charging decisions are made.
-Because the decisions are sequential and the outcome uncertain, we frame this as a reinforcement learning problem and train a Deep Q-Network (DQN).
-The agent observes the battery's state of charge (SoC) and the time slot, chooses among four power levels (off, 7.3, 14.7, or 22 kW), pays a charging cost that grows steeply with power, and takes a large penalty if the battery falls short of the realized shift demand.
-The full environment design, agent setup, and training diagnostics are in @sec-app-rl.
+If forecasting tells the operator where demand will be, charging determines what it costs to serve.
+To study this, we model a single electric taxi that arrives home at 2 p.m. and must leave the garage again at 4 p.m.
+Rather than charging at a flat rate, an agent sets the charging power every 15 minutes, balancing two competing goals: keeping the recharging cost low and guaranteeing enough energy for the upcoming shift, whose demand is still unknown at the time the charging decisions are made.
+Because these decisions are sequential and the outcome uncertain, we frame the problem as one of reinforcement learning and train a Deep Q-Network (DQN).
+The agent observes the battery's state of charge (SoC) and the current time slot, chooses among four power levels (off, 7.3, 14.7, or 22 kW), pays a charging cost that grows steeply with power, and incurs a large penalty if the battery falls short of the realized shift demand.
+The full environment design, agent setup, and training diagnostics are provided in @sec-app-rl.
 
 ![Learned charging policy across SoC and time slot: preferred action (off / low / medium / high) per state.](assets/rl_policy_heatmap.png){#fig-policy-heatmap width=60% fig-align="center"}
 
-The learned policy (@fig-policy-heatmap) is simple enough to hand to an operations team: charge hard while the battery is low, taper as a buffer builds, switch off once SoC comfortably exceeds expected demand.
-Because a shortfall is penalized far more heavily than expensive charging, the policy is risk-averse by construction.
-It targets a small surplus above the 30 kWh mean demand rather than the mean itself.
+The learned policy (@fig-policy-heatmap) is simple enough to hand to an operations team, amounting to charging hard while the battery is low, tapering off as a buffer builds, and switching off once the SoC comfortably exceeds expected demand.
+Because a shortfall is penalized far more heavily than expensive charging, the policy is risk-averse by construction and targets a small surplus above the 30 kWh mean demand rather than the mean itself.
 
 | Policy | Avg. Reward | Avg. Cost | Avg. Penalty | Avg. Final SoC (kWh) | Shortfall rate |
 |---|---|---|---|---|---|
@@ -104,11 +91,10 @@ It targets a small surplus above the 30 kWh mean demand rather than the mean its
 
 : Policy comparison over 1,000 evaluation episodes. {#tbl-rl-eval}
 
-Evaluated over 1,000 episodes (@tbl-rl-eval), the agent delivers nearly the safety of always charging at maximum, with a far better cost profile.
-Always-Max never runs short but pays roughly 35 % more in charging cost for a buffer it doesn't need, ending with an average of 56.5 kWh against a 30 kWh mean demand.
-The random policy shows the other failure mode: a 29 % shortfall rate would mean roughly one in three shifts starting under-charged.
-The DQN agent runs short in 0.4 % of episodes, and that reliability level is tunable through the shortfall penalty.
+Evaluated over 1,000 episodes (@tbl-rl-eval), the agent delivers nearly the safety of always charging at maximum while achieving a far better cost profile.
+Always-Max never runs short but pays roughly 35 % more in charging cost for a buffer it does not need, ending with an average of 56.5 kWh against a 30 kWh mean demand, and the random policy illustrates the opposite failure mode, since its 29 % shortfall rate would mean roughly one in three shifts starting under-charged.
+The DQN agent, by contrast, runs short in only 0.4 % of episodes, and this reliability level can itself be tuned through the shortfall penalty.
 
-For the client, the takeaway is that "charge to full" is not cost-optimal even though it feels safest.
-The learned policy could be deployed as a plain lookup table on a home charging unit, since the state space is only two-dimensional.
-Two caveats belong in the client conversation: the agent is trained on a fixed demand distribution and needs retraining if trip volumes shift, and the shortfall penalty is a dial to set according to the operator's actual tolerance for an under-charged vehicle, not a fixed technical constant.
+For the client, the key takeaway is that "charge to full" is not cost-optimal even though it feels safest.
+Since the state space is only two-dimensional, the learned policy could be deployed as a plain lookup table on a home charging unit.
+Two caveats nonetheless belong in the client conversation: the agent is trained on a fixed demand distribution and would need retraining if trip volumes shift, and the shortfall penalty is a dial to be set according to the operator's actual tolerance for an under-charged vehicle rather than a fixed technical constant.
