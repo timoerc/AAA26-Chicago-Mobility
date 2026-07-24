@@ -5,7 +5,7 @@
 Taxi demand in Chicago follows predictable rhythms tied to work schedules, social activity, and weather.
 Understanding those rhythms is the starting point for fleet positioning and driver scheduling.
 
-![Pickup demand heatmap cross-tabulated by hour of day and day of week.](../data/raw/heatmap_hour_dow.png){width=80% fig-align="center"}
+![Pickup demand heatmap cross-tabulated by hour of day and day of week.](assets/heatmap_hour_dow.png){width=80% fig-align="center"}
 
 Weekdays are bimodal: a morning commuter peak around 08:00 and a stronger, broader evening peak between 16:00 and 19:00, with Tuesday to Thursday carrying the highest volumes in the dataset.
 Weekends run on a different clock.
@@ -21,7 +21,7 @@ To analyze space consistently we discretize the city with Uber's H3 hexagonal gr
 The maps below use resolution 7.
 The forecasting models in Section 5 operate one step coarser, at resolution 6.
 
-![Choropleth maps of pickup demand aggregated at community area level and H3 resolutions 6, 7, and 8.](../data/raw/demand_choropleth.png){width=80% fig-align="center"}
+![Choropleth maps of pickup demand aggregated at community area level and H3 resolutions 6, 7, and 8.](assets/demand_choropleth.png){width=80% fig-align="center"}
 
 The Near North Side and the Loop dominate demand, consistent with their role as Chicago's central business and entertainment district, while O'Hare forms a structurally distinct cluster in the far northwest.
 As resolution increases the hotspots sharpen into specific corridors (the Magnificent Mile, River North, the area around O'Hare), and areas that look moderate at community level turn out to vary strongly inside.
@@ -40,7 +40,7 @@ Vehicles dropping passengers in outer neighborhoods, by contrast, face a structu
 
 Net flow, defined as pickups minus dropoffs per hexagon, turns that imbalance into something a planner can act on: persistently positive cells need more vehicles than dropoffs return, and negative cells accumulate them.
 
-![Net flow (pickups minus dropoffs) by H3 hexagon, aggregated across the full observation period.](../data/raw/netflow_4h_buckets.png){width=80% fig-align="center"}
+![Net flow (pickups minus dropoffs) by H3 hexagon, aggregated across the full observation period.](assets/netflow_4h_buckets.png){width=80% fig-align="center"}
 
 The downtown core and the O'Hare corridor consistently hand out more trips than they take back, while the residential outskirts act as vehicle sinks.
 For an electric fleet this points straight at infrastructure: chargers placed in the negative-flow residential zones turn otherwise idle accumulation into productive charging time, before vehicles are repositioned to the high-demand corridors.

@@ -90,7 +90,7 @@ Because the decisions are sequential and the outcome uncertain, we frame this as
 The agent observes the battery's state of charge (SoC) and the time slot, chooses among four power levels (off, 7.3, 14.7, or 22 kW), pays a charging cost that grows steeply with power, and takes a large penalty if the battery falls short of the realized shift demand.
 The full environment design, agent setup, and training diagnostics are in @sec-app-rl.
 
-![Learned charging policy across SoC and time slot: preferred action (off / low / medium / high) per state.](../data/raw/rl_policy_heatmap.png){#fig-policy-heatmap width=60% fig-align="center"}
+![Learned charging policy across SoC and time slot: preferred action (off / low / medium / high) per state.](assets/rl_policy_heatmap.png){#fig-policy-heatmap width=60% fig-align="center"}
 
 The learned policy (@fig-policy-heatmap) is simple enough to hand to an operations team: charge hard while the battery is low, taper as a buffer builds, switch off once SoC comfortably exceeds expected demand.
 Because a shortfall is penalized far more heavily than expensive charging, the policy is risk-averse by construction.
