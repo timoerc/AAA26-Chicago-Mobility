@@ -26,6 +26,6 @@ That's Chicago's continental climate at work, and a plausible driver of taxi dem
 ## Point-of-Interest Data
 
 POI data comes from OpenStreetMap via `osmnx` [@boeing2017osmnx].
-Raw tags (restaurant, bus_stop, hospital, ...) are too fine-grained and overlapping to use directly, so we collapsed them into seven demand-relevant categories, from food & nightlife (5,640 locations) down to transport (135), leaving **9,124 POIs** after reducing polygons to centroids.
+Raw tags (restaurant, bus_stop, hospital, ...) are too fine-grained and overlapping to use directly, so we collapsed them into seven demand-relevant categories, from food & nightlife (5,652 locations) down to transport (134), leaving **9,141 POIs** after reducing polygons to centroids.
 POIs are static: they don't vary over time and aren't counted as demand.
 Aggregated per hexagon as category counts, they proxy how strongly each cell attracts trips.

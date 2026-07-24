@@ -2,7 +2,7 @@
 
 ## Taxi Trip Data
 
-@tbl-taxi-columns lists the key fields of the trip dataset. Seven temporal features (date, hour, day of week, month, year, week, weekend flag) are derived at load time, bringing the working total to 28 columns.
+@tbl-taxi-columns lists the key fields of the trip dataset. Seven temporal features (date, hour, day of week, month, week, weekend flag, holiday flag) are derived at load time, bringing the working total to 28 columns.
 
 | Column | Type | Description |
 |:--------------------------------|:----------------|:----------------------------|
@@ -28,7 +28,7 @@
 
 ## Weather Data
 
-The three weather zones are centered on the downtown core (41.886$^\circ$N, 87.629$^\circ$W), the O'Hare area (41.979$^\circ$N, 87.903$^\circ$W), and the South Side (41.785$^\circ$N, 87.750$^\circ$W). Both the elbow method and the silhouette score pointed to k = 3. @tbl-weather-vars lists the hourly variables fetched for each zone.
+The three weather zones are centered on the downtown core (41.897$^\circ$N, 87.639$^\circ$W), the O'Hare area (41.980$^\circ$N, 87.906$^\circ$W), and the South Side (41.769$^\circ$N, 87.656$^\circ$W). Both the elbow method and the silhouette score pointed to k = 3. @tbl-weather-vars lists the hourly variables fetched for each zone.
 
 | Variable | Unit | Description |
 |---|---|---|
@@ -50,13 +50,13 @@ The OSM query covers four tag categories (`amenity`, `shop`, `tourism`, `leisure
 
 | Category | Count | Examples |
 |---|---|---|
-| Food & Nightlife | 5,640 | Restaurants, bars, cafés, fast food |
-| Education | 1,219 | Schools, universities, libraries |
-| Shopping | 1,084 | Supermarkets, clothing, electronics |
+| Food & Nightlife | 5,652 | Restaurants, bars, cafés, fast food |
+| Education | 1,220 | Schools, universities, libraries |
+| Shopping | 1,085 | Supermarkets, clothing, electronics |
 | Healthcare | 469 | Hospitals, clinics, pharmacies |
-| Entertainment | 348 | Theaters, cinemas, museums |
-| Accommodation | 229 | Hotels, hostels |
-| Transport | 135 | Bus stops, subway entrances, ferry terminals |
+| Entertainment | 350 | Theaters, cinemas, museums |
+| Accommodation | 231 | Hotels, hostels |
+| Transport | 134 | Bus stops, subway entrances, ferry terminals |
 
 : POI counts by functional category (OpenStreetMap, Chicago). {#tbl-poi-categories}
 
@@ -78,7 +78,7 @@ Different fields are missing for different reasons, so each gets its own treatme
 
 ## Consistency Checks
 
-Some records are present but aren't real journeys. **Ghost trips** have zero seconds, identical start and end time, and identical start and end location, which looks like a meter switched on and off. All four conditions must hold, so genuine short trips survive; we remove the **153,078** records that qualify (~1 %). A further **1,013,003 trips** (6.8 %) log zero distance despite positive duration, with a median of 73 seconds and a quarter under 7 seconds.
+Some records are present but aren't real journeys. **Ghost trips** have zero seconds, identical start and end time, and identical start and end location, which looks like a meter switched on and off. All four conditions must hold, so genuine short trips survive; we remove the **152,967** records that qualify (~1 %). A further **1,013,003 trips** (6.8 %) log zero distance despite positive duration, with a median of 73 seconds and a quarter under 7 seconds.
 These are overwhelmingly meter cancellations or GPS failures rather than real journeys, and all are excluded. We also confirmed there are no end-before-start inversions and no duplicate trip IDs.
 
 ## Outlier Removal
@@ -110,9 +110,9 @@ After dropping non-journeys, we remove physically implausible values using two d
 
 **Condition codes.** The raw weather data carries a WMO condition code (0--99). Treating it as a number implies a false ordering (code 95 isn't "95$\times$ worse" than code 1), and only three conditions actually appear: clear, rain, snow. Since rain and snow already have their own numeric columns, the code adds nothing and is dropped.
 
-**Clock-change gaps.** Each zone shows a one-hour gap on spring-forward days (2024-03-10, 2025-03-09). The 02:00 hour doesn't exist when clocks jump 01:00 → 03:00, so the gap is correct and no imputation is needed.
+**Clock-change gaps.** Each zone shows a one-hour gap on spring-forward days (2024-03-10, 2025-03-09, 2026-03-08). The 02:00 hour doesn't exist when clocks jump 01:00 → 03:00, so the gap is correct and no imputation is needed.
 
-**POI geometry.** The OSM query returns points, polygons, and lines. All non-point features are reduced to their centroid, so every POI is a single coordinate. Each is mapped to one of seven functional categories via a lookup table, with unmapped types discarded; the final 9,124 POIs are assigned to the hexagon containing their coordinate.
+**POI geometry.** The OSM query returns points, polygons, and lines. All non-point features are reduced to their centroid, so every POI is a single coordinate. Each is mapped to one of seven functional categories via a lookup table, with unmapped types discarded; the final 9,141 POIs are assigned to the hexagon containing their coordinate.
 
 ## Granularity and Sparsity
 
@@ -123,7 +123,7 @@ Grain sets a trade-off: finer units capture local variation but leave more cells
 | H3 resolution 5 (large hexagons) | 1 hour | 163,400 | 5.8 % |
 | H3 resolution 6 | 1 hour | 551,475 | 26.8 % |
 | H3 resolution 6 | 4 hours | 137,889 | 12.6 % |
-| H3 resolution 7 | 4 hours | 653,696 | 49.2 % |
+| H3 resolution 7 | 4 hours | 602,626 | 49.2 % |
 
 : Zero-demand share across spatial and temporal granularities. {#tbl-sparsity}
 
