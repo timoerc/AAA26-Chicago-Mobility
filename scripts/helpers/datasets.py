@@ -130,7 +130,6 @@ def load_poi_data() -> gpd.GeoDataFrame:
         "guest_house": "accommodation",
         "mall": "shopping", "supermarket": "shopping", "department_store": "shopping",
         "convenience": "shopping", "marketplace": "shopping",
-        "office": "office",
     }
     pois["category"] = pois["poi_type"].map(_POI_CATEGORY_MAP)
     pois = pois.dropna(subset=["category"]).reset_index(drop=True)

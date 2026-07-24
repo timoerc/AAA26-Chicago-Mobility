@@ -1,7 +1,7 @@
 [project]
-name = "assignment-template" # REPLACE
-version = "0.1.0" # submission version must be 1.0.0
-description = "Quarto template for IS3 team project reports" # REPLACE
+name = "aaa26-chicago-mobility"
+version = "1.0.0"
+description = "Analysis and demand forecasting for 2024 Chicago taxi trips (University of Cologne IS3 team project)."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
