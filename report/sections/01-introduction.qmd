@@ -3,13 +3,13 @@
 ## Business Context
 
 The following report outlines the analysis of Bane & Wayne Partners (BWP) concerning the dynamics in the market of ride-hailing services with EV fleets exemplified at the US City of Chicago. 
-The Data Science Team worked on the case study in order to provide data-driven insights and guidance for the objective to establish a platform for ride-hailing mobility services. Therefore, historical data is utilized to characterize demand, build initial models to forecast demand and designed a cost-efficient charging strategy as an agent.
-The goal is to provide actionable intelligence and provide a clear path towards key criteria in launching and running the fleet platform.
+The Data Science Team worked on the case study in order to provide data-driven insights and guidance for the objective to establish a platform for ride-hailing mobility services (data mining goal). Therefore, historical data is utilized to characterize demand, build initial models to forecast demand and designed a cost-efficient charging strategy as an agent.
+The business goal is to provide actionable intelligence and provide a clear path towards key criteria in launching and running the fleet platform.
 
 1. **Where and when is demand concentrated, and where is it actually profitable to serve?** This drives market entry, fleet positioning, and driver scheduling. 
 2. **How much better than a simple seasonal schedule can demand be forecast?** Better predictions cut idle time and energy waste, and raise driver earnings. 
-3. **How should the fleet charge to minimize cost and the risk of an under-charged vehicle, and what does that imply for charging infrastructure?** 
-4. **Is each analytical model worth what it costs to build, run, and maintain, or does a simpler baseline already captures most of the value?** Every model in this report, from a historical average to a neural network to a reinforcement-learning agent, is evaluated against this background.
+3. **How should the fleet charge to minimize cost and the risk of an under-charged vehicles?** This provides implications for charging infrastructure.
+4. **Is each analytical model worth what it costs to build, run, and maintain, or does a simpler baseline already captures most of the value?** Each model, is evaluated against this background.
 
 
 
