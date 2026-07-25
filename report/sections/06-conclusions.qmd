@@ -3,54 +3,55 @@
 ## What the Analysis Shows
 
 Demand in Chicago is concentrated in space and structured in time.
-A handful of hexagons account for a disproportionate share of all pickups: the downtown core, the Magnificent Mile, the O'Hare corridor.
-Most of the city sits close to zero for much of the day.
-On top of that sits a predictable weekly rhythm: bimodal weekdays with a strong evening peak, later and flatter weekends, and a quiet overnight window common to every day.
+A handful of hexagons, covering the downtown core, the Magnificent Mile, and the O'Hare corridor, account for a disproportionate share of all pickups, while most of the city sits close to zero for much of the day.
+This spatial concentration is overlaid by a predictable weekly rhythm: bimodal weekdays with a strong evening peak, later and flatter weekends, and a quiet overnight window common to every day.
 
 Both forecasting models beat the seasonal climatology baseline, the neural network by a clear margin (MAE 18.90 against 23.88) and the SVM more modestly (21.78 against 23.88).
-The reinforcement learning agent learned a charging policy that reliably met the driver's departure energy needs at a cost well below a naive charge-at-maximum strategy.
+The reinforcement learning agent, in turn, learned a charging policy that reliably met the driver's departure energy needs at a cost well below a naive charge-at-maximum strategy.
+For BWP, these three findings map directly onto the launch decisions raised in the introduction: where to enter the market, how far to trust a forecast over a fixed schedule, and how to power the fleet without eroding margins.
 
 ## Recommendations for the Fleet Operator
 
 **Position vehicles for the corridors, not the map as a whole.**
-Demand lives in a handful of places.
-That argues for a phased rollout starting in the downtown-to-lakefront corridor and the airport connections, not an even spread across all 77 community areas.
-O'Hare alone sends close to half a million trips toward the Near North Side and the Loop, so the airport-to-downtown axis is a dependable source of paid mileage from day one.
+Because demand lives in a handful of places, BWP should phase the rollout rather than spread it evenly across all 77 community areas, beginning with the downtown-to-lakefront corridor and the airport connections.
+O'Hare alone sends close to half a million trips toward the Near North Side and the Loop, which makes the airport-to-downtown axis a dependable source of paid mileage from day one and a low-risk place to concentrate the initial fleet.
 
 **Use the net-flow signal to plan repositioning.**
-Pickups and dropoffs don't balance locally.
-Downtown and the airport hand out more trips than they take back, while the residential edges absorb vehicles without generating return demand, and a fleet that ignores this accumulates idle cars in the wrong places.
-Repositioning logic should be built around the net-flow map, treating the outer sinks as places to hold and charge rather than places to wait for fares.
+Pickups and dropoffs do not balance locally.
+Downtown and the airport hand out more trips than they take back, whereas the residential edges absorb vehicles without generating return demand, so a fleet that ignores this pattern gradually accumulates idle cars in the wrong places.
+Repositioning logic should therefore be built around the net-flow map, treating the outer sinks as places to hold and charge rather than places to wait for fares.
 
-**Forecast for planning, and know what the forecast can't see.**
-The neural network earns its complexity because it responds to weather and atypical days in a way a fixed schedule can't.
-It's the right tool for shift planning and for questions like expected demand in a given area on a rainy Sunday afternoon.
-What it doesn't capture are one-off spikes from concerts, fixtures, and conventions.
-Treat model output as a strong baseline to be overridden by hand on known event days, not as a complete demand picture.
+**Forecast for planning, and know what the forecast cannot see.**
+The neural network earns its added complexity because it responds to weather and atypical days in a way a fixed schedule cannot, which makes it well suited to shift planning and to questions such as expected demand in a given area on a rainy Sunday afternoon.
+What it does not capture are one-off spikes driven by concerts, fixtures, and conventions.
+Its output is best treated as a strong baseline to be overridden by hand on known event days, not as a complete demand picture.
+In practice, BWP can run the neural network as the default engine for driver scheduling and let dispatchers layer local event knowledge on top.
 
 ## Private or Public Charging
 
-The charging economics and the demand geography point to a mixed answer.
-The cost function penalizes high charging power convexly, so charging slowly over a long window is much cheaper than short bursts at full rate.
+Taken together, the charging economics and the demand geography point to a mixed answer.
+Because the cost function penalizes high charging power convexly, charging slowly over a long window is much cheaper than drawing short bursts at the full rate.
 The agent exploited exactly this, spreading energy across the available slots and holding a modest buffer above expected demand.
-That favors private or depot charging for the bulk of the fleet's energy: it lines up with the quiet overnight window, draws at a low and cheap rate for hours, and can sit in the negative-net-flow residential zones where cars would otherwise idle.
+Such a strategy favors private or depot charging for the bulk of the fleet's energy, since it lines up with the quiet overnight window, draws at a low and cheap rate for hours, and can be located in the negative-net-flow residential zones where cars would otherwise idle.
 
-Public fast charging works against this cost structure, because its whole value is delivering energy quickly, which is the expensive corner of the curve.
-Our recommendation: anchor the fleet on private or depot charging near where vehicles naturally end their shifts, and use public fast charging only as an opportunistic top-up for a car that would otherwise have to leave a high-demand corridor to recharge.
+Public fast charging works against this cost structure, as its entire value lies in delivering energy quickly, which is precisely the expensive corner of the curve.
+We therefore recommend that BWP anchor the fleet on private or depot charging near where vehicles naturally end their shifts, and reserve public fast charging as an opportunistic top-up for a car that would otherwise have to leave a high-demand corridor to recharge.
+For infrastructure planning, this means investing first in depot capacity in the residential sink zones rather than in a broad network of fast chargers.
 
 ## Limitations
 
-Several caveats bound these findings.
-Locations are reported at census-tract centroids rather than true GPS, so hotspot detection and flow maps inherit a coarse spatial grain, and fine within-tract patterns are invisible by construction.
-The forecasting models see no recent demand counts and no event calendar, which is why both under-predict the largest downtown spikes and why the SVR only modestly improves on a seasonal average.
-The SVR also had to be tuned on a small subsample because it doesn't scale to the full grid.
-And the charging agent is trained against a stylised environment with a fixed cost coefficient and normally distributed departure demand.
-Real prices and energy needs vary, so the learned policy is a proof of concept, not a deployable controller.
+Several caveats bound our findings.
+Locations are reported at census-tract centroids rather than precise locations, so hotspot detection and flow maps inherit a coarse spatial grain and fine within-tract patterns remain invisible by construction.
+Furthermore, the forecasting models see neither recent demand counts nor an event calendar, which explains why both under-predict the largest downtown spikes and why the SVR only modestly improves on a seasonal average. The SVR also had to be tuned on a small subsample, as computational complexity increases significantly with the full grid.
+The charging agent, finally, is trained against a stylized environment with a fixed cost coefficient and normally distributed departure demand.
+Because real prices and energy needs vary, the learned policy should be read as a proof of concept rather than a deployable controller.
+BWP should therefore treat the numbers above as directional evidence for where and how to launch, and validate them against live operating data once the first vehicles are on the road.
 
 ## Outlook
 
-The most valuable next step is adding lagged demand to the forecasts.
+For BWP, the most valuable next step is adding lagged demand to the forecasts.
 The previous period's actual count is usually the strongest single predictor, and its absence is the clearest gap between this setup and a production system.
-A spatially aware hexagon encoding (distance to center, proximity to transport hubs, neighboring demand) would let the models generalize across cells, and an event calendar would target precisely the spikes they currently miss.
-On the charging side, real day-ahead electricity prices would let the agent optimize against the tariffs a fleet actually faces.
-Beyond that, pairing the demand maps with fare-per-mile and idle-time patterns would show where drivers earn most efficiently, and an explicit repositioning model would turn the net-flow findings into concrete vehicle movements.
+Beyond it, a spatially aware hexagon encoding (distance to center, proximity to transport hubs, neighboring demand) would help the models generalize across cells, while an event calendar would target precisely the spikes they currently miss.
+On the charging side, real day-ahead electricity prices would let the agent optimize against the tariffs the fleet actually faces.
+Further ahead, pairing the demand maps with fare-per-mile and idle-time patterns would reveal where drivers earn most efficiently, and an explicit repositioning model would translate the net-flow findings into concrete vehicle movements.
+Together these steps form a practical roadmap for turning this initial study into the operational decision engine behind BWP's Chicago launch.

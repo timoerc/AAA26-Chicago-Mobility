@@ -56,18 +56,25 @@ Queried for an outer-city hexagon on a rainy Sunday in July, for instance, it pr
 
 ### Model Comparison
 
-Both models run on the same resolution 6 grid with 4-hour windows, measured against the same climatology baseline:
+Both prediction models beat the climatology baseline, but the neural network improves on it by more than twice when compared to the SVR, and for an operator positioning vehicles under changing weather or on atypical weekdays that responsiveness is precisely the point, since a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one. Test error alone does not settle model choice, because a forecast that cannot be explained, retrained, or served cheaply is worth less than its accuracy suggests, and for a taxi fleet the consequences of a wrong forecast are asymmetric and land directly on driver earnings. @tbl-model-criteria weighs the two models and the climatology baseline along the dimensions that matter for putting a forecast into production.
 
-| Model | Setting | Climatology MAE | Model MAE | Improvement |
-|---|---|---|---|---|
-| SVR (RBF) | H3 res. 6, 4 h windows | 23.88 | 21.78 | **Better** (+9 %) |
-| Neural network | H3 res. 6, 4 h windows | 23.88 | 18.90 | **Better** (+21 %) |
+| Criterion                     | Climatology        | SVR (RBF)                                               | Neural network                                    |
+|-------------------------------|--------------------|---------------------------------------------------------|---------------------------------------------------|
+| Performance vs. baseline (MAE)| 23.88              | 21.78 (-8 %)                                            | 18.90 (-21 %)                                     |
+| Model complexity              | Low (Lookup table) | Moderate (kernel, few hyperparameters)                  | High (multi-layer, many weights)                  |
+| Explainability                | Fully transparent  | Limited (kernel-implicit, through feature coefficients) | Black box                                         |
+| Computational cost (training) | Negligible         | High (quadratic in samples), heavy inference            | Moderate (near-linear), cheap inference           |
+| Maintainability / retraining  | Recompute averages | Costly to refit; poor scaling                           | Retrains and fine-tunes incrementally on new data |
 
-: Each model's performance relative to the climatology baseline. {#tbl-model-comparison}
+: The forecasting models (H3 resolution 6, 4 hour windows) weighed across production-relevant criteria. {#tbl-model-criteria}
 
-The neural network wins for two structural reasons.
-It trains on the full dataset, whereas the SVR scales poorly and had to learn from a small subsample, and it learns feature interactions jointly, where the SVR applies one fixed transformation to every input.
-Both beat the seasonal schedule, but the network improves on it by more than twice as much, and for an operator positioning vehicles under changing weather or on atypical weekdays that responsiveness is precisely the point, since a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one.
+The three models trade transparency against predictive power in a fairly orderly way. Climatology sits at one extreme: it is a plain lookup table, fully transparent, and costs almost nothing to compute or refresh, but it is static by construction and cannot react to weather or atypical days. The SVR occupies the middle on structure yet is the most demanding on resources, since its training cost grows roughly quadratically with the number of samples, which is precisely why it had to be fitted on a subsample of the data rather than the full grid, and its kernel evaluations make prediction comparatively heavy as well. Refitting it as new months of trip data arrive would inherit that same scaling penalty.
+
+The neural network is the least transparent of the three (effectively a black box), which is the real price of its good performance. Against that, it is the more practical model to operate: it trains at near-linear cost in the data, serves each forecast through a handful of cheap matrix multiplications, and, importantly for a live dispatch setting, can be fine-tuned incrementally as fresh trip data accumulates rather than refitted from scratch. So while it wins on raw performance by more than twice the SVR's margin, the more decisive point is that its cost and maintenance profile scales with a growing dataset, where the SVR's does not.
+
+The criterion that matters most in operation is idle time, and it exposes a gap between average accuracy and profitability. The two error directions are not equally costly. Over-prediction sends drivers to a cell that turns out quiet, where they idle and burn fuel for no fare. Under-prediction at the busy downtown and airport windows is worse, because it leaves the highest-revenue trips unserved while vehicles wait elsewhere. This is where the MAE ranking is misleading: the neural network has the lower average error but the larger bias at those peaks (−5.34 trips against the SVR's roughly −3), so part of its advantage comes from the many low-demand cells rather than the few that drive earnings. Weighted by revenue rather than by cell count, the two models are closer than the 21 % and 8 % figures imply, and an operator focused on covering peak demand could reasonably prefer the less biased SVR.
+
+The one criterion where the neural network clearly loses is explainability, which is important in a taxi fleet operation setting because a forecast has to earn a driver's trust before it changes their behaviour. A driver who is told to move to a cell against their own instinct, with no reason given, and then finds it empty will lose trust in the tool. For that reason the most transparent climatology baseline retains value beyond its accuracy: when the neural network's prediction deviates sharply from the seasonal norm, that gap is a signal worth surfacing to the driver as a reason to move, rather than a black-box instruction to be taken on faith.
 
 ## Smart Charging
 
