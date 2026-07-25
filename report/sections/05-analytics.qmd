@@ -85,7 +85,7 @@ Because these decisions are sequential and the outcome uncertain, we frame the p
 The agent observes the battery's state of charge (SoC) and the current time slot, chooses among four power levels (off, 7.3, 14.7, or 22 kW), pays a charging cost that grows steeply with power, and incurs a large penalty if the battery falls short of the realized shift demand.
 The full environment design, agent setup, and training diagnostics are provided in @sec-app-rl.
 
-![Learned charging policy across SoC and time slot: preferred action (off / low / medium / high) per state.](assets/rl_policy_heatmap.png){#fig-policy-heatmap width=60% fig-align="center"}
+![Distributions over 1,000 evaluation episodes: total reward, final SoC, and cost vs. penalty, compared across DQN Agent, Always-Max, and Random.](assets/rl_policy_evaluation.png){#fig-policy-evaluation width=95% fig-align="center"}
 
 The learned policy (@fig-policy-heatmap) is simple enough to hand to an operations team, amounting to charging hard while the battery is low, tapering off as a buffer builds, and switching off once the SoC comfortably exceeds expected demand.
 Because a shortfall is penalized far more heavily than expensive charging, the policy is risk-averse by construction and targets a small surplus above the 30 kWh mean demand rather than the mean itself.

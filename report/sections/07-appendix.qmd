@@ -135,13 +135,16 @@ Grain sets a trade-off: finer units capture local variation but leave more cells
 
 ![Pickup demand by 4-hour time bucket, covering the full 24-hour cycle.](assets/demand_4h_buckets.png){width=90% fig-align="center"}
 
-![Choropleth maps of profit rate per productive hour, aggregated by hexagon resolutions 7 on 4 hour buckets](assets/profitability_rank_4h.png){width=80% fig-align="center"}
+![Net flow (pickups minus dropoffs) by H3 hexagon, aggregated across the full observation period.](assets/netflow_4h_buckets.png){width=80% fig-align="center"}
 
 ![Choropleth maps of fare/mile, aggregated by hexagon resolutions 7 on 4 hour buckets](assets/fare_efficiency_rank_mile_4h.png){width=80% fig-align="center"}
 
 ![Choropleth maps of fare/min, aggregated by hexagon resolutions 7 on 4 hour buckets](assets/fare_efficiency_rank_min_4h.png){width=80% fig-align="center"}
 
 ![Origin--destination matrix for the top 10 community areas by total trip volume.](assets/od_matrix_community.png){width=90% fig-align="center"}
+
+$$\text{profit\_rate}_i = \frac{\text{fare}_i - C_{\text{time}} \cdot (t^{\text{trip}}_i + t^{\text{idle}}_i) - C_{\text{dist}} \cdot d_i}{t^{\text{trip}}_i / 3600}$$
+
 
 # Model Tuning and Diagnostics {#sec-app-models}
 
@@ -240,9 +243,9 @@ The Q-network is a small feedforward network with two hidden layers (12,932 para
 
 @fig-training-curves shows the training curves. Reward and shortfall penalty do not decline monotonically: several stretches (around episodes 500 and 1,000) show a spike in average penalty, where the agent temporarily under-charges before correcting. This reflects the exploration-driven trade-off inherent to $\varepsilon$-greedy DQN. The agent must occasionally under-charge to learn the shape of the penalty, since the shortfall penalty is only observed at the end of an episode. By the later episodes, the average penalty converges to zero while average final SoC stabilizes above the 30 kWh demand mean, indicating the agent has learned a conservative buffer against demand uncertainty rather than charging to the mean exactly.
 
-## Evaluation Distributions
+## Charging Policy
 
-![Distributions over 1,000 evaluation episodes: total reward, final SoC, and cost vs. penalty, compared across DQN Agent, Always-Max, and Random.](assets/rl_policy_evaluation.png){#fig-policy-evaluation width=95% fig-align="center"}
+![Learned charging policy across SoC and time slot: preferred action (off / low / medium / high) per state.](assets/rl_policy_heatmap.png){#fig-policy-heatmap width=60% fig-align="center"}
 
 ## Example Episode
 
