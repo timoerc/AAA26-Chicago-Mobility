@@ -4,7 +4,6 @@
 
 The following report outlines the analysis of Bane & Wayne Partners (BWP) concerning the dynamics in the market of ride-hailing services with EV fleets exemplified at the US City of Chicago. 
 The Data Science Team worked on the case study in order to provide data-driven insights and guidance for the objective to establish a platform for ride-hailing mobility services. Therefore, historical data is utilized to characterize demand, build initial models to forecast demand and designed a cost-efficient charging strategy as an agent.
-
 The goal is to provide actionable intelligence and provide a clear path towards key criteria in launching and running the fleet platform.
 
 1. **Where and when is demand concentrated, and where is it actually profitable to serve?** This drives market entry, fleet positioning, and driver scheduling. 
