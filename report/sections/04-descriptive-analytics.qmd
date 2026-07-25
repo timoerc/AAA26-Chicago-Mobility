@@ -51,7 +51,7 @@ These initial vehicle repositioning strategies are constrained by potential spat
 For an electric fleet this has even further implications, with regards to drivers planning, car supply, infrastructure and charging planning, since chargers placed in the net-positive dropoff zones would turn otherwise into idle accumulation, but productive charging can cover the time before potential demand occurs that leads vehicles back to the high-demand areas (details in Appendix [-@sec-app-figures], @fig-netflow). 
 
 
-## Profitability analysis
+## Profitability Analysis
 
 The demand map alone would point every vehicle downtown. 
 With the additional perspective of the Demand-Flows residential outskirts in the north among other residential outskirts became more relevant. 

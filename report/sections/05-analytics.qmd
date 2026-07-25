@@ -20,6 +20,8 @@ For the neural network, a grid search over architectures, learning rates, and op
 Both searches and their intermediate results are in Appendix [-@sec-app-models], @tbl-svm-kernels and @tbl-nn-activations.
 @tbl-model-results shows the final test-set results on 41,367 grid cells.
 
+\small
+
 | Model | MAE | RMSE | R$^2$ |
 |---|---|---|---|
 | Per-cell mean | 61.62 | 201.45 | 0.624 |
@@ -28,6 +30,8 @@ Both searches and their intermediate results are in Appendix [-@sec-app-models],
 | Neural network | **18.90** | **72.42** | **0.951** |
 
 : Test-set performance of both learned models compared to the naive baselines. {#tbl-model-results}
+
+\normalsize
 
 Both models beat the baselines, but by very different margins.
 The SVR improves on climatology only modestly, at an MAE of 21.78 against 23.88, or roughly 9 %.
@@ -45,6 +49,8 @@ Resolution 6 with 4-hour windows therefore remains the working choice, as moving
 
 Both models beat climatology, but the neural network improves on it by more than twice the SVR's margin. For an operator positioning vehicles under changing weather or on atypical weekdays, that responsiveness is the point, since a seasonal average cannot say whether tomorrow's rainy Monday will run busier than a dry one. Test error alone does not settle model choice, because a forecast that cannot be explained, retrained, or served cheaply is worth less than its accuracy suggests, and for a taxi fleet the cost of a wrong forecast is asymmetric and lands directly on driver earnings. @tbl-model-criteria weighs both models and climatology along the dimensions that matter for putting a forecast into production.
 
+\small
+
 | Criterion                | Climatology        | SVR (RBF)                                     | Neural network                                    |
 |:---------------------|:--------------|:-----------------------------|:-----------------------------|
 | Performance vs. baseline (MAE) | 23.88        | 21.78 (-8 %)                                  | 18.90 (-21 %)                                     |
@@ -55,11 +61,11 @@ Both models beat climatology, but the neural network improves on it by more than
 
 : The forecasting models (H3 resolution 6, 4 hour windows) weighed across production-relevant criteria. {#tbl-model-criteria}
 
-The three models trade transparency against predictive power in an orderly way. Climatology sits at one extreme. It is a plain lookup table, fully transparent and almost free to compute or refresh, but static by construction and unable to react to weather or atypical days. The SVR occupies the middle on structure yet is the most resource-demanding. Its training cost grows roughly quadratically with the number of samples, which is why it had to be fitted on a subsample rather than the full grid, and its kernel evaluations make prediction heavy too. Refitting it as new months of trip data arrive would inherit that same penalty.
+\normalsize
 
-The neural network is the least transparent of the three, effectively a black box, which is the real price of its performance. Against that, it is the more practical model to operate. It trains at near-linear cost in the data, serves each forecast through a handful of cheap matrix multiplications, and, importantly for live dispatch, can be fine-tuned incrementally as fresh trip data accumulates rather than refitted from scratch. So while it wins on raw performance, the more decisive point is that its cost and maintenance profile scales with a growing dataset where the SVR's does not.
+The three models trade transparency against predictive power in an orderly way. Climatology is a plain lookup table, transparent and almost free to refresh, but static and unable to react to weather or atypical days. The SVR sits in the middle on structure but is the most resource-demanding, since its training cost grows roughly quadratically with the number of samples, which is why it had to be fitted on a subsample rather than the full grid and would carry that same penalty on every refit. The neural network is the least transparent, effectively a black box, but the more practical to operate, training at near-linear cost and, importantly for live dispatch, fine-tuning incrementally on fresh data rather than refitting from scratch. Its more decisive edge over the SVR is therefore not raw accuracy but a cost and maintenance profile that scales with a growing dataset.
 
-Idle time is the criterion that matters most in operation, and it exposes a gap between average accuracy and profitability, because the two error directions are not equally costly. Over-prediction sends drivers to a cell that turns out quiet, where they idle and burn fuel for no fare. Under-prediction at the busy downtown and airport windows is worse, because it leaves the highest-revenue trips unserved while vehicles wait elsewhere. Here the MAE ranking misleads. The neural network has the lower average error but the larger bias at those peaks (−5.34 trips against the SVR's roughly −3), so part of its advantage comes from the many low-demand cells rather than the few that drive earnings. Weighted by revenue rather than by cell count, the two models are closer than the 21 % and 8 % figures imply, and an operator focused on covering peak demand could reasonably prefer the less biased SVR.
+The two error directions are also not equally costly. Over-prediction only idles a driver in a quiet cell, whereas under-prediction at the busy downtown and airport windows leaves the highest-revenue trips unserved. This is where the MAE ranking misleads, since the neural network has the lower average error but the larger bias at those peaks (−5.34 trips against the SVR's roughly −3). Weighted by revenue rather than by cell count the two models are closer than the 21 % and 8 % figures imply, and an operator focused on peak demand could reasonably prefer the less biased SVR.
 
 The one criterion where the neural network clearly loses is explainability, which matters in fleet operation because a forecast has to earn a driver's trust before it changes their behaviour. A driver sent to a cell against their own instinct, with no reason given, who then finds it empty will lose trust in the tool. For that reason climatology retains value beyond its accuracy. When the neural network deviates sharply from the seasonal norm, that gap is itself a signal worth surfacing to the driver as a reason to move, rather than a black-box instruction to be taken on faith.
 
@@ -75,6 +81,8 @@ The full environment design, agent setup, and training diagnostics are provided 
 The learned policy (Appendix [-@sec-app-rl], @fig-policy-heatmap) is simple enough to hand to an operations team, amounting to charging hard while the battery is low, tapering off as a buffer builds, and switching off once the SoC comfortably exceeds expected demand.
 Because a shortfall is penalized far more heavily than expensive charging, the policy is risk-averse by construction and targets a small surplus above the 30 kWh mean demand rather than the mean itself.
 
+\small
+
 | Policy | Avg. Reward | Avg. Cost | Avg. Penalty | Avg. Final SoC (kWh) | Shortfall rate |
 |---|---|---|---|---|---|
 | DQN Agent | **-65.10** | 64.45 | 0.65 | 42.8 | **0.4 %** |
@@ -82,6 +90,8 @@ Because a shortfall is penalized far more heavily than expensive charging, the p
 | Random | -202.91 | 56.39 | 146.52 | 34.4 | 29.1 % |
 
 : Policy comparison over 1,000 evaluation episodes. {#tbl-rl-eval}
+
+\normalsize
 
 Evaluated over 1,000 episodes (@tbl-rl-eval), the agent delivers nearly the safety of always charging at maximum while achieving a far better cost profile.
 Always-Max never runs short but pays roughly 35 % more in charging cost for a buffer it does not need, ending with an average of 56.5 kWh against a 30 kWh mean demand, and the random policy illustrates the opposite failure mode, since its 29 % shortfall rate would mean roughly one in three shifts starting under-charged.

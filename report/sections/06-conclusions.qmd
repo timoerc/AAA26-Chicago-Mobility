@@ -47,11 +47,11 @@ The charging agent, finally, is trained against a stylized environment with a fi
 Because real prices and energy needs vary, the learned policy should be read as a proof of concept rather than a deployable controller.
 BWP should therefore treat the numbers above as directional evidence for where and how to launch, and validate them against live operating data once the first vehicles are on the road.
 
-## Outlook
+<!-- ## Outlook
 
 For BWP, the most valuable next step is adding lagged demand to the forecasts.
 The previous period's actual count is usually the strongest single predictor, and its absence is the clearest gap between this setup and a production system.
 Beyond it, a spatially aware hexagon encoding (distance to center, proximity to transport hubs, neighboring demand) would help the models generalize across cells, while an event calendar would target precisely the spikes they currently miss.
 On the charging side, real day-ahead electricity prices would let the agent optimize against the tariffs the fleet actually faces.
 Further ahead, pairing the demand maps with fare-per-mile and idle-time patterns would reveal where drivers earn most efficiently, and an explicit repositioning model would translate the net-flow findings into concrete vehicle movements.
-Together these steps form a practical roadmap for turning this initial study into the operational decision engine behind BWP's Chicago launch.
+Together these steps form a practical roadmap for turning this initial study into the operational decision engine behind BWP's Chicago launch. -->
