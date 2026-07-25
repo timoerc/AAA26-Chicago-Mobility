@@ -58,13 +58,13 @@ Queried for an outer-city hexagon on a rainy Sunday in July, for instance, it pr
 
 Both prediction models beat the climatology baseline, but the neural network improves on it by more than twice when compared to the SVR, and for an operator positioning vehicles under changing weather or on atypical weekdays that responsiveness is precisely the point, since a seasonal average says nothing about whether tomorrow's rainy Monday will run busier than a dry one. Test error alone does not settle model choice, because a forecast that cannot be explained, retrained, or served cheaply is worth less than its accuracy suggests, and for a taxi fleet the consequences of a wrong forecast are asymmetric and land directly on driver earnings. @tbl-model-criteria weighs the two models and the climatology baseline along the dimensions that matter for putting a forecast into production.
 
-| Criterion                     | Climatology        | SVR (RBF)                                               | Neural network                                    |
-|-------------------------------|--------------------|---------------------------------------------------------|---------------------------------------------------|
-| Performance vs. baseline (MAE)| 23.88              | 21.78 (-8 %)                                            | 18.90 (-21 %)                                     |
-| Model complexity              | Low (Lookup table) | Moderate (kernel, few hyperparameters)                  | High (multi-layer, many weights)                  |
-| Explainability                | Fully transparent  | Limited (kernel-implicit, through feature coefficients) | Black box                                         |
-| Computational cost (training) | Negligible         | High (quadratic in samples), heavy inference            | Moderate (near-linear), cheap inference           |
-| Maintainability / retraining  | Recompute averages | Costly to refit; poor scaling                           | Retrains and fine-tunes incrementally on new data |
+| Criterion                | Climatology        | SVR (RBF)                                     | Neural network                                    |
+|:---------------------|:--------------|:-----------------------------|:-----------------------------|
+| Performance vs. baseline (MAE) | 23.88        | 21.78 (-8 %)                                  | 18.90 (-21 %)                                     |
+| Model complexity         | Low (lookup table) | Moderate (kernel, few hyperparameters)        | High (multi-layer, many weights)                  |
+| Explainability           | Fully transparent  | Limited (kernel-implicit feature effects)     | Black box                                         |
+| Computational cost (training)  | Negligible   | High (quadratic in samples), heavy inference  | Moderate (near-linear), cheap inference           |
+| Maintainability / retraining   | Recompute averages | Costly to refit; poor scaling           | Retrains/fine-tunes incrementally on new data     |
 
 : The forecasting models (H3 resolution 6, 4 hour windows) weighed across production-relevant criteria. {#tbl-model-criteria}
 
