@@ -135,6 +135,12 @@ Grain sets a trade-off: finer units capture local variation but leave more cells
 
 ![Pickup demand by 4-hour time bucket, covering the full 24-hour cycle.](assets/demand_4h_buckets.png){width=90% fig-align="center"}
 
+![Choropleth maps of profit rate per productive hour, aggregated by hexagon resolutions 7 on 4 hour buckets](assets/profitability_rank_4h.png){width=80% fig-align="center"}
+
+![Choropleth maps of fare/mile, aggregated by hexagon resolutions 7 on 4 hour buckets](assets/fare_efficiency_rank_mile_4h.png){width=80% fig-align="center"}
+
+![Choropleth maps of fare/min, aggregated by hexagon resolutions 7 on 4 hour buckets](assets/fare_efficiency_rank_min_4h.png){width=80% fig-align="center"}
+
 ![Origin--destination matrix for the top 10 community areas by total trip volume.](assets/od_matrix_community.png){width=90% fig-align="center"}
 
 # Model Tuning and Diagnostics {#sec-app-models}

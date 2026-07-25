@@ -51,3 +51,29 @@ This implies the corresponding working plan to be designed such that ride-hailin
 This strategy should shift, to certain repositioning areas in the north of downtown, as well as the residential outskirts, which get more prevalent in the curse of the day (12am - 11pm). 
 These initial vehicle repositioning strategies are constrained by potential spatio-temporal differences in profitability and trip efficiency. 
 For an electric fleet this has even further implications, with regards to drivers planning, car supply, infrastructure and charging planning, since chargers placed in the net-positive dropoff zones would turn otherwise into idle accumulation, but productive charging can cover the time before potential demand occurs that leads vehicles back to the high-demand areas. 
+
+
+## Profitability analysis
+
+The demand map alone would point every vehicle downtown. 
+With the additional perspective of the Demand-Flows residential outskirts in the north among other residential outskirts became more relevant. 
+To introduce a comprehensive view, we add a additional sophisticated analysis layer. 
+We estimate a net profit rate per productive hour for every trip (fare minus a time cost, Chicago’s $16.20/hr minimum wage, and a distance cost, EV energy at ComEd rates) and rank hexagons by this rate within each 4-hour window (details in #sec-app-figures).
+
+$$\text{profit\_rate}_i = \frac{\text{fare}_i - C_{\text{time}} \cdot (t^{\text{trip}}_i + t^{\text{idle}}_i) - C_{\text{dist}} \cdot d_i}{t^{\text{trip}}_i / 3600}$$
+
+Additionally, a we differentiatied by fare per mile and fare per minute, to clearify, which element dominate the profitability. 
+The fare per mile (details in #sec-app-figures) is consistently highest downtown in every time window: short, congested trips still bill close to minimum fare, so revenue per mile stays high as the ride barely moves. 
+Fare per minute (details in #sec-app-figures) shows the opposite geography, running highest on the South Side and near the city’s edges, where trips move faster and cover more ground per minute of driving time.
+
+Because profit rate is measured per hour, not per mile, the per-minute effect dominates, which is exactly why downtown, the highest-volume area, is not the highest-profitability area. 
+For the client, this decouples two decisions that look identical on the demand map alone. 
+Downtown is where the volume is, and it is still worth serving for that reason, but a positioning strategy optimized purely for pickup count would systematically under-price driver time relative to other faster-moving areas. 
+
+![Choropleth maps of profit rate per productive hour, aggregated by hexagon resolutions 7 on 4 hour buckets](assets/profitability_rank_4h.png){width=80% fig-align="center"}
+
+The result in the pofitability map is close to a mirror image of the demand map. Downtown is consistently among the least profitable areas per hour, in every time window, while the South Side and the city’s edges rank most profitable. 
+The reason is congestion: downtown trips are short but slow, so a driver earns a high fare per mile but a low fare per minute, and profitability is a per-hour, not a per-mile, measure. These market behaviors have different implications dependent on the scenario the clients plans, concerning charging infrastructure and fleet strength.
+
+The previously created repositioning strategy has to be adjusted in a sense that, if demand occurs throughout the day in the South Side this is preferentially served, because of high profitability. 
+As these trips are rare left over ride-hailing supply should orientate, as previously outlines throughout the day more to the north of downtown.
