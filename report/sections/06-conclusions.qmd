@@ -38,7 +38,7 @@ Public fast charging works against this cost structure, as its entire value lies
 We therefore recommend that BWP anchor the fleet on private or depot charging near where vehicles naturally end their shifts, and reserve public fast charging as an opportunistic top-up for a car that would otherwise have to leave a high-demand corridor to recharge.
 For infrastructure planning, this means investing first in depot capacity in the residential sink zones rather than in a broad network of fast chargers.
 
-## Limitations
+## Limitations {#sec-limitations}
 
 Several caveats bound our findings.
 Locations are reported at census-tract centroids rather than precise locations, so hotspot detection and flow maps inherit a coarse spatial grain and fine within-tract patterns remain invisible by construction.

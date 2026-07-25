@@ -24,7 +24,7 @@ format:
     cite-method: biblatex
     biblio-style: apa
     toc: true
-    lof: true
+    lof: false
     number-sections: true
     execute:
       echo: false

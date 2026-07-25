@@ -15,6 +15,11 @@ co-supervisor: "Janik Muires" # TA of the course is the co-supervisor
 date: 2026-07-26 # Date of submission
 ---
 
+<!-- List of figures on its own page, after a break from the table of contents. -->
+{{< pagebreak >}}
+
+\listoffigures
+
 <!-- While you could use \clearpage or \newpage, this is the recommended way to insert a page break in Quarto as it translates to the native page break command for the output format you are using (e.g., \clearpage for PDF, <div style="page-break-after: always;"></div> for HTML). -->
 {{< pagebreak >}}
 
@@ -36,5 +41,8 @@ date: 2026-07-26 # Date of submission
 {{< pagebreak >}}
 
 \appendix
+\part*{Appendix}
+\addcontentsline{toc}{part}{Appendix}
+\addtocontents{toc}{\protect\setcounter{tocdepth}{1}}
 
 {{< include sections/07-appendix.qmd >}}

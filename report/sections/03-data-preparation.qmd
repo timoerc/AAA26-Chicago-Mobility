@@ -4,7 +4,7 @@
 
 Public portal data requires careful validation before it can be relied upon. 
 This covered missing fields and their imputation, recordings with zero duration or zero distance, and trips with implausible speeds or fares. 
-The complete data preparation rules are reported @sec-app-prep. Taken together, these steps remove just over 10 % of the raw records without distorting the underlying geography, as the per-neighborhood pickup counts before and after cleaning correlate at 1.0. Not every following analysis step calls for the same degree of rigor. Since partially faulty trips still represent genuine demand, we distinguish two cleaning levels. For demand forecasting utilized by prediction models, a minimal level of cleaning retains 99.99 % of rows, whereas trip-level spatial analytics only keeps 89.99%.
+The complete data preparation rules are reported in Appendix [-@sec-app-prep]. Taken together, these steps remove just over 10 % of the raw records without distorting the underlying geography, as the per-neighborhood pickup counts before and after cleaning correlate at 1.0. Not every following analysis step calls for the same degree of rigor. Since partially faulty trips still represent genuine demand, we distinguish two cleaning levels. For demand forecasting utilized by prediction models, a minimal level of cleaning retains 99.99 % of rows, whereas trip-level spatial analytics only keeps 89.99%.
 
 The weather and POI data required comparatively light preparation. 
 The three weather zones were obtained by running K-means clustering over all trip pickup coordinates, which placed the zone centroids where demand is densest. 
@@ -12,7 +12,7 @@ Namely the downtown core, O’Hare, and the South Side.
 Beyond this, we dropped a redundant weather condition code and checked for gaps that could appear becasue of summer/winter time changes. 
 The points of interest posed a different problem, as the raw OpenStreetMap tags were too fine-grained and overlapping, to be used directly. 
 We therefore collapsed them into seven demand-relevant categories ranging from food and nightlife to transport, and reduced each geometry to a single coordinate. 
-Aggregated per hexagon as category counts, these then serve as a proxy for how strongly each cell attracts trips (details in @sec-app-prep).
+Aggregated per hexagon as category counts, these then serve as a proxy for how strongly each cell attracts trips (details in Appendix [-@sec-app-prep]).
 
 
 
@@ -22,5 +22,5 @@ The forecasting models do not operate on individual trips but on an aggregated g
 Cells that record no pickups are retained as explicit zero-demand rows, ensuring that the models also learn from low-demand periods rather than only from high-demand periods. 
 Choosing the resolution of this grid is a performance trade-off, since finer cells localize demand more precisely, but with a larger share of empty cells. 
 This leads to longer trainings and higher computational resources required. We account for this trade-off by founding our analysis on **H3 resolution 6 with 4-hour buckets**, which results in 27 hexagons × 5,107 time buckets = 137,889 rows at a manageable 12.6 % zero-demand cells. 
-Moving one resolution higher would increase that share toward 50 % without a significant gain in operational precision (details in @sec-app-prep).
+Moving one resolution higher would increase that share toward 50 % without a significant gain in operational precision (details in Appendix [-@sec-app-prep], @tbl-sparsity).
 The features comprise the calendar context (hour, day of week, month, weekend flags, US-holiday flags, time encoded as sine-cosine pairs with 23:00 positioned next to 00:00), the nine weather variables origin from the nearest zone, and a POI indicator, giving 51 input features per grid cell in total.

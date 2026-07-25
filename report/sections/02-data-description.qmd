@@ -1,15 +1,15 @@
 # Data Description
 
-The analysis draws on three complementary data sources: Chicago taxi trip records for the demand signal, hourly weather data, and OpenStreetMap points of interest for the urban structure that shapes where trips originate. Full field-level data dictionaries are provided in @sec-app-data.
+The analysis draws on three complementary data sources: Chicago taxi trip records for the demand signal, hourly weather data, and OpenStreetMap points of interest for the urban structure that shapes where trips originate. Full field-level data dictionaries are provided in Appendix [-@sec-app-data].
 
 | Source | Period | Volume | Spatial grain | Role |
-|---|---|---|---|---|
+|:-----------------|:---------------------|:----------------|:-------------------|:-------------|
 | Taxi trips (Chicago Data Portal) | Jan 2024 – May 2026 | 14,985,679 trips, 21 fields | Census tract (~800 tracts) | Demand target, revenue |
-| Weather (Open-Meteo) [@openmeteo] | Jan 2024 – May 2026 | 61,335 hourly obs. across 3 zones | 3 zones (downtown, O'Hare, South Side) | Exogenous demand driver |
-| Points of interest (OpenStreetMap) [@boeing2017osmnx] | static | 9,124 locations, 7 categories | point coordinates | Structural demand driver |
+| Weather [@openmeteo] | Jan 2024 – May 2026 | 61,335 hourly obs. | 3 zones (downtown, O'Hare, South Side) | Exogenous demand driver |
+| Points of interest [@boeing2017osmnx] | static | 9,124 locations, 7 categories | Point coordinates | Structural demand driver |
 
 : The three data sources behind the analysis. {#tbl-data-sources}
 
-Each trip of the taxi-dataset is described across 21 spatio-temporal and economic feature columns. All timestamps of these trips, are rounded to the nearest 15 minutes, which limits temporal precision but leaves the hourly-and-coarser aggregations this report relies on unaffected. Most consequentially, pickup and dropoff locations are reported only at census-tract level rather than as GPS coordinates, a resolution the analysis works around but never fully escapes (see Limitations, Section 6).
+Each trip of the taxi-dataset is described across 21 spatio-temporal and economic feature columns. All timestamps of these trips, are rounded to the nearest 15 minutes, which limits temporal precision but leaves the hourly-and-coarser aggregations this report relies on unaffected. Most consequentially, pickup and dropoff locations are reported only at census-tract level rather than as GPS coordinates, a resolution the analysis works around but never fully escapes (see Limitations, @sec-limitations).
 
 Weather is sampled at three zones rather than one, since Chicago's ~600 km² footprint shows real microclimatic differences between the lakefront, the dense core, and the far northwest that a single station would miss. Each observation carries nine meteorological variables that broadly describe temperature, precipitation and snow, wind, and cloud cover. Points of interest are static: they describe what is near a location, not what happened at a given time, and enter the models purely as a proxy for how strongly a hexagon attracts trips. They represent tag groups like, amenities, shops, tourism, and leisure, which incorporate fixed features of the city such as restaurants, transit stops and hospitals.

@@ -12,15 +12,15 @@ Weekday demand is distinctly bimodal, with a morning commuter peak around 08:00 
 Weekends generally have a different demand pattern: demand starts later, builds gradually through the afternoon, and shows none of the commuter spikes. 
 Across every day of the week, the 00:00–06:00 window remains uniformly low-demand, which makes it the natural slot for charging and maintenance in an electric fleet. 
 
-Individual trips are, mostly short urban drives, with a median duration of around ten minutes and running under five miles, alongside a high number of airport and cross-city rides (distributions in @sec-app-figures). 
+Individual trips are, mostly short urban drives, with a median duration of around ten minutes and running under five miles, alongside a high number of airport and cross-city rides (distributions in Appendix [-@sec-app-figures], @fig-trip-distributions). 
 The idle time between a driver’s consecutive trips lies between 0–30 minute, indicating recurring periods of deliberate waiting or repositioning.
 
 
 
 ## Spatio-Temporal Analytics
 
-To analyze space consistently, the city is discretized with Uber’s H3 hexagonal grid, which offers uniform cell areas and clean adjacency that administrative boundaries lack (grid in @sec-app-figures). 
-The maps below are drawn at resolution 6,7,8, while the forecasting models in Section 5 operate on resolution 5,6,7. 
+To analyze space consistently, the city is discretized with Uber’s H3 hexagonal grid, which offers uniform cell areas and clean adjacency that administrative boundaries lack (grid in Appendix [-@sec-app-figures], @fig-h3-grid). 
+The maps below are drawn at resolution 6,7,8, while the forecasting models in @sec-analytics operate on resolution 5,6,7. 
 This selection is based on avalability of computational resources and the simplicity of manual visual inspection even for high resolutions.
 
 ![Choropleth maps of pickup demand aggregated at community area level and H3 resolutions 6, 7, and 8.](assets/demand_choropleth.png){width=80% fig-align="center"}
@@ -30,14 +30,14 @@ The Near North Side and the Loop (central pier) clearly dominate demand, consist
 As the resolution increases, the hotspots sharpen into specific corridors such as the Magnificent Mile, River North, and the area around O’Hare, and neighborhoods that appear moderate at community level, but vary considerably within themselves. 
 Community-area aggregation therefore conceals precisely the sub-neighborhood differences that a fleet relies on for its positioning decisions.
 
-The picture shifts over the course of the day, yet the downtown-lakefront corridor remains dominant in every 4-hour window (maps in @sec-app-figures). 
+The picture shifts over the course of the day, yet the downtown-lakefront corridor remains dominant in every 4-hour window (maps in Appendix [-@sec-app-figures], @fig-demand-buckets). 
 Over night, the downtown core retains its relative activity driven by hospitality traffic. The early mornings add a secondary hotspot around Midway Airport as the first departures begin, and the evening windows intensify the core sharply while the outskirts stay at comparatively low-demand.
 
 
 ## Demand-Flows Between Areas
 
 
-The origin-destination analysis (matrix in @sec-app-figures) shows the Near North Side and the Loop dominating as both origins and destinations. 
+The origin-destination analysis (matrix in Appendix [-@sec-app-figures], @fig-od-matrix) shows the Near North Side and the Loop dominating as both origins and destinations. 
 The O’Hare community area, sends despite its distance, 1,000,000 trips toward those two areas alone. 
 This makes the airport-to-downtown route one of the most dependable sources of paid mileage in the network. 
 Vehicles that drop passengers in the outer neighborhoods, by contrast, face a structural repositioning problem in getting back to high-demand areas. 
@@ -48,7 +48,7 @@ The residential outskirts tend to move from an dropoff-overhead towards a pickup
 This implies the corresponding working plan to be designed such that ride-hailing vehicles should tend to focus on city center in the early phases of the day (4am - 11am). 
 This strategy should shift, to certain repositioning areas in the north of downtown, as well as the residential outskirts, which get more prevalent in the curse of the day (12am - 11pm). 
 These initial vehicle repositioning strategies are constrained by potential spatio-temporal differences in profitability and trip efficiency. 
-For an electric fleet this has even further implications, with regards to drivers planning, car supply, infrastructure and charging planning, since chargers placed in the net-positive dropoff zones would turn otherwise into idle accumulation, but productive charging can cover the time before potential demand occurs that leads vehicles back to the high-demand areas (details in @sec-app-figures). 
+For an electric fleet this has even further implications, with regards to drivers planning, car supply, infrastructure and charging planning, since chargers placed in the net-positive dropoff zones would turn otherwise into idle accumulation, but productive charging can cover the time before potential demand occurs that leads vehicles back to the high-demand areas (details in Appendix [-@sec-app-figures], @fig-netflow). 
 
 
 ## Profitability analysis
@@ -56,11 +56,11 @@ For an electric fleet this has even further implications, with regards to driver
 The demand map alone would point every vehicle downtown. 
 With the additional perspective of the Demand-Flows residential outskirts in the north among other residential outskirts became more relevant. 
 To introduce a comprehensive view, we add a additional sophisticated analysis layer. 
-We estimate a net profit rate per productive hour for every trip (fare minus a time cost, Chicago’s $16.20/hr minimum wage, and a distance cost, EV energy at ComEd rates) and rank hexagons by this rate within each 4-hour window (formula/details in @sec-app-figures).
+We estimate a net profit rate per productive hour for every trip (fare minus a time cost, Chicago’s $16.20/hr minimum wage, and a distance cost, EV energy at ComEd rates) and rank hexagons by this rate within each 4-hour window (formula in Appendix [-@sec-app-figures], @eq-profit-rate).
 
 Additionally, a we differentiatied by fare per mile and fare per minute, to clearify, which element dominate the profitability. 
-The fare per mile (details in @sec-app-figures) is consistently highest downtown in every time window: short, congested trips still bill close to minimum fare, so revenue per mile stays high as the ride barely moves. 
-Fare per minute (details in @sec-app-figures) shows the opposite geography, running highest on the South Side and near the city’s edges, where trips move faster and cover more ground per minute of driving time.
+The fare per mile (details in Appendix [-@sec-app-figures], @fig-fare-mile) is consistently highest downtown in every time window: short, congested trips still bill close to minimum fare, so revenue per mile stays high as the ride barely moves. 
+Fare per minute (details in Appendix [-@sec-app-figures], @fig-fare-min) shows the opposite geography, running highest on the South Side and near the city’s edges, where trips move faster and cover more ground per minute of driving time.
 
 Because profit rate is measured per hour, not per mile, the per-minute effect dominates, which is exactly why downtown, the highest-volume area, is not the highest-profitability area. 
 For the client, this decouples two decisions that look identical on the demand map alone. 
